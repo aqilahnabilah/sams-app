@@ -3,7 +3,8 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../manage-sub-reg/facultyregistrar/main-course.dart';
-import '../manage-sub-reg/student/register_subjects_page.dart';
+import '../manage-sub-reg/student/list_subject.dart';
+import '../manage-sub-reg/advisor/subject_approvals.dart';
 
 class StudentDashboard extends StatelessWidget {
   final String email;
@@ -156,7 +157,10 @@ class StudentDashboard extends StatelessWidget {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => const RegisterSubjectsPage(),
+                              builder: (context) => RegisterSubjectsPage(
+                                studentEmail: email,
+                                studentName: name,
+                              ),
                             ),
                           );
                         },
@@ -385,6 +389,18 @@ class LecturerDashboard extends StatelessWidget {
                         color: Colors.amber.shade400,
                       ),
                       _buildActionCard(
+                        icon: Icons.fact_check_outlined,
+                        title: 'Subject Approvals',
+                        color: Colors.amber.shade400,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const SubjectApprovalsPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildActionCard(
                         icon: Icons.rate_review,
                         title: 'Grading Portal',
                         color: Colors.amber.shade400,
@@ -409,6 +425,7 @@ class LecturerDashboard extends StatelessWidget {
     required IconData icon,
     required String title,
     required Color color,
+    VoidCallback? onTap,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -422,7 +439,7 @@ class LecturerDashboard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {},
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(

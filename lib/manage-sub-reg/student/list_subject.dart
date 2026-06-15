@@ -3,9 +3,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../services/course_service.dart';
+import 'register_subject.dart';
 
 class RegisterSubjectsPage extends StatefulWidget {
-  const RegisterSubjectsPage({super.key});
+  final String studentEmail;
+  final String studentName;
+
+  const RegisterSubjectsPage({
+    super.key,
+    required this.studentEmail,
+    required this.studentName,
+  });
 
   @override
   State<RegisterSubjectsPage> createState() => _RegisterSubjectsPageState();
@@ -148,17 +156,21 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
                           final doc = filteredDocs[index];
                           final data = doc.data() as Map<String, dynamic>;
                           
+                          final String docId = doc.id;
                           final String code = data['code'] ?? '';
                           final String name = data['name'] ?? '';
                           final List<dynamic> lectures = data['lectures'] ?? [];
+                          final List<dynamic> labs = data['labs'] ?? [];
                           
                           final int fallbackCapacity = data['capacity'] ?? 0;
                           final int fallbackRegistered = data['registeredCount'] ?? 0;
 
                           return _buildSubjectCard(
+                            docId: docId,
                             code: code,
                             name: name,
                             lectures: lectures,
+                            labs: labs,
                             fallbackCapacity: fallbackCapacity,
                             fallbackRegistered: fallbackRegistered,
                           );
@@ -200,9 +212,11 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
   }
 
   Widget _buildSubjectCard({
+    required String docId,
     required String code,
     required String name,
     required List<dynamic> lectures,
+    required List<dynamic> labs,
     required int fallbackCapacity,
     required int fallbackRegistered,
   }) {
@@ -221,114 +235,141 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
     }
 
     final int availableSeats = totalCapacity - totalRegistered;
+    final bool isFull = availableSeats <= 0;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1.2,
+    return Opacity(
+      opacity: isFull ? 0.55 : 1.0,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.1),
+            width: 1.2,
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Left Column: Code Badge and Subject Name
-            Expanded(
-              child: Column(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(24),
+            onTap: isFull
+                ? null
+                : () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => RegisterSubjectPage(
+                          studentEmail: widget.studentEmail,
+                          studentName: widget.studentName,
+                          subjectId: docId,
+                          subjectCode: code,
+                          subjectName: name,
+                          lectures: lectures,
+                          labs: labs,
+                        ),
+                      ),
+                    );
+                  },
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Code Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.teal.shade500.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.teal.shade400.withOpacity(0.4),
-                      ),
-                    ),
-                    child: Text(
-                      code,
-                      style: const TextStyle(
-                        color: Colors.tealAccent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
+                  // Left Column: Code Badge and Subject Name
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Code Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.shade500.withOpacity(0.25),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Colors.teal.shade400.withOpacity(0.4),
+                            ),
+                          ),
+                          child: Text(
+                            code,
+                            style: const TextStyle(
+                              color: Colors.tealAccent,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // Subject Name
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  // Subject Name
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  const SizedBox(width: 16),
+                  // Right Column: Status Badge and Quota Left
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Status Badge (Available/Full)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: availableSeats > 0
+                              ? Colors.green.shade500.withOpacity(0.15)
+                              : Colors.red.shade500.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: availableSeats > 0
+                                ? Colors.greenAccent.withOpacity(0.4)
+                                : Colors.redAccent.withOpacity(0.4),
+                          ),
+                        ),
+                        child: Text(
+                          availableSeats > 0 ? 'Available' : 'Full',
+                          style: TextStyle(
+                            color: availableSeats > 0 ? Colors.greenAccent : Colors.redAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Quota Left
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Quota Left',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.5),
+                              fontSize: 11,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '$availableSeats',
+                            style: TextStyle(
+                              color: availableSeats > 0 ? Colors.tealAccent : Colors.redAccent,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
-            // Right Column: Status Badge and Quota Left
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Status Badge (Available/Full)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: availableSeats > 0
-                        ? Colors.green.shade500.withOpacity(0.15)
-                        : Colors.red.shade500.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: availableSeats > 0
-                          ? Colors.greenAccent.withOpacity(0.4)
-                          : Colors.redAccent.withOpacity(0.4),
-                    ),
-                  ),
-                  child: Text(
-                    availableSeats > 0 ? 'Available' : 'Full',
-                    style: TextStyle(
-                      color: availableSeats > 0 ? Colors.greenAccent : Colors.redAccent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Quota Left
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Quota Left',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.5),
-                        fontSize: 11,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$availableSeats',
-                      style: TextStyle(
-                        color: availableSeats > 0 ? Colors.tealAccent : Colors.redAccent,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
