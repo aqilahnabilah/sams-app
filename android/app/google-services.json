@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "445802360436",
+    "project_id": "sams-app-e4656",
+    "storage_bucket": "sams-app-e4656.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:445802360436:android:888320d7e10859e131eb21",
+        "android_client_info": {
+          "package_name": "com.example.sams"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGFwC1Gepzl-ZJKm5hu4fXFRfbR4QquSA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

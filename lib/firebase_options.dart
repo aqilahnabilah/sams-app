@@ -21,10 +21,7 @@ class DefaultFirebaseOptions {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
@@ -76,6 +73,14 @@ class DefaultFirebaseOptions {
     messagingSenderId: '445802360436',
     projectId: 'sams-app-e4656',
     authDomain: 'sams-app-e4656.firebaseapp.com',
+    storageBucket: 'sams-app-e4656.firebasestorage.app',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyDGFwC1Gepzl-ZJKm5hu4fXFRfbR4QquSA',
+    appId: '1:445802360436:android:888320d7e10859e131eb21',
+    messagingSenderId: '445802360436',
+    projectId: 'sams-app-e4656',
     storageBucket: 'sams-app-e4656.firebasestorage.app',
   );
 }
