@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../manage-sub-reg/facultyregistrar/main-course.dart';
 
 class StudentDashboard extends StatelessWidget {
   final String email;
@@ -585,6 +586,13 @@ class RegistrarDashboard extends StatelessWidget {
                         icon: Icons.add_to_photos,
                         title: 'Manage Courses',
                         color: Colors.indigo.shade300,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const ManageCoursesPage(),
+                            ),
+                          );
+                        },
                       ),
                       _buildActionCard(
                         icon: Icons.supervised_user_circle,
@@ -616,6 +624,7 @@ class RegistrarDashboard extends StatelessWidget {
     required IconData icon,
     required String title,
     required Color color,
+    VoidCallback? onTap,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -629,7 +638,7 @@ class RegistrarDashboard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {},
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
