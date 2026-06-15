@@ -155,17 +155,17 @@ class StudentDashboard extends StatelessWidget {
                       ),
                       _buildActionCard(
                         icon: Icons.calendar_month,
-                        title: 'Class Schedule',
+                        title: 'Co-curriculum',
                         color: Colors.teal.shade300,
                       ),
                       _buildActionCard(
                         icon: Icons.assignment,
-                        title: 'Grades & Results',
+                        title: 'Student Fee',
                         color: Colors.teal.shade300,
                       ),
                       _buildActionCard(
                         icon: Icons.person_outline,
-                        title: 'My Profile',
+                        title: 'Attendance',
                         color: Colors.teal.shade300,
                       ),
                     ],
