@@ -140,18 +140,24 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
                           final String code = data['code'] ?? '';
                           final String name = data['name'] ?? '';
                           final String lecturer = data['lecturer'] ?? '';
-                          final String section = data['section'] ?? '';
-                          final int capacity = data['capacity'] ?? 0;
-                          final int registered = data['registeredCount'] ?? 0;
+                          
+                          final List<dynamic> lectures = data['lectures'] ?? [];
+                          final List<dynamic> labs = data['labs'] ?? [];
+                          
+                          final String fallbackSection = data['section'] ?? '';
+                          final int fallbackCapacity = data['capacity'] ?? 0;
+                          final int fallbackRegistered = data['registeredCount'] ?? 0;
 
                           return _buildSubjectCard(
                             docId: docId,
                             code: code,
                             name: name,
                             lecturer: lecturer,
-                            section: section,
-                            capacity: capacity,
-                            registered: registered,
+                            lectures: lectures,
+                            labs: labs,
+                            fallbackSection: fallbackSection,
+                            fallbackCapacity: fallbackCapacity,
+                            fallbackRegistered: fallbackRegistered,
                           );
                         },
                       );
@@ -173,15 +179,53 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
     );
   }
 
+  String _format24hTime(String time24h) {
+    try {
+      final parts = time24h.split(':');
+      if (parts.length != 2) return time24h;
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+      final ampm = hour >= 12 ? 'PM' : 'AM';
+      final hour12 = hour % 12 == 0 ? 12 : hour % 12;
+      final minStr = minute.toString().padLeft(2, '0');
+      return '$hour12:$minStr $ampm';
+    } catch (e) {
+      return time24h;
+    }
+  }
+
+  String _formatDayShort(String day) {
+    if (day.length > 3) {
+      return day.substring(0, 3);
+    }
+    return day;
+  }
+
   Widget _buildSubjectCard({
     required String docId,
     required String code,
     required String name,
     required String lecturer,
-    required String section,
-    required int capacity,
-    required int registered,
+    required List<dynamic> lectures,
+    required List<dynamic> labs,
+    required String fallbackSection,
+    required int fallbackCapacity,
+    required int fallbackRegistered,
   }) {
+    // Compute total seats capacity and registered count across sections
+    int totalCapacity = 0;
+    int totalRegistered = 0;
+
+    if (lectures.isNotEmpty) {
+      for (var lec in lectures) {
+        totalCapacity += (lec['capacity'] as num).toInt();
+        totalRegistered += (lec['registeredCount'] as num).toInt();
+      }
+    } else {
+      totalCapacity = fallbackCapacity;
+      totalRegistered = fallbackRegistered;
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.08),
@@ -253,6 +297,7 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
 
                 // Details Row
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: Column(
@@ -260,10 +305,88 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
                         children: [
                           _buildDetailRow(Icons.person_outline, lecturer),
                           const SizedBox(height: 8),
-                          _buildDetailRow(Icons.meeting_room_outlined, 'Section: $section'),
+                          
+                          // Display grouped lectures & labs
+                          if (lectures.isNotEmpty) ...[
+                            ...lectures.map<Widget>((lec) {
+                              final lecName = lec['name'] ?? '';
+                              final lecDay = lec['day'] ?? '';
+                              final lecStart = lec['startTime'] ?? '';
+                              final lecEnd = lec['endTime'] ?? '';
+                              final lecCap = lec['capacity'] ?? 0;
+                              final lecReg = lec['registeredCount'] ?? 0;
+
+                              // Filter labs that belong to this lecture section
+                              final assocLabs = labs.where((lab) => lab['parentLecture'] == lecName).toList();
+
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 10.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Lecture header line
+                                    Row(
+                                      children: [
+                                        Icon(Icons.menu_book_outlined, size: 16, color: Colors.tealAccent.withOpacity(0.8)),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'Lec $lecName: ${_formatDayShort(lecDay)} ${_format24hTime(lecStart)}-${_format24hTime(lecEnd)} ($lecReg/$lecCap)',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (assocLabs.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 24.0),
+                                        child: Wrap(
+                                          spacing: 6,
+                                          runSpacing: 6,
+                                          children: assocLabs.map<Widget>((lab) {
+                                            final labName = lab['name'] ?? '';
+                                            final labCap = lab['capacity'] ?? 0;
+                                            final labReg = lab['registeredCount'] ?? 0;
+                                            final labDay = lab['day'] ?? '';
+                                            final labStart = lab['startTime'] ?? '';
+                                            final labEnd = lab['endTime'] ?? '';
+
+                                            return Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(0.04),
+                                                borderRadius: BorderRadius.circular(6),
+                                                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                                              ),
+                                              child: Text(
+                                                '$labName ($labReg/$labCap) • ${_formatDayShort(labDay)} ${_format24hTime(labStart)}-${_format24hTime(labEnd)}',
+                                                style: TextStyle(
+                                                  color: Colors.white.withOpacity(0.7),
+                                                  fontSize: 10,
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            })
+                          ] else ...[
+                            _buildDetailRow(Icons.meeting_room_outlined, 'Section: $fallbackSection'),
+                          ],
                         ],
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    // Aggregated Total Capacity Badge
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -273,7 +396,7 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
                       child: Column(
                         children: [
                           Text(
-                            '$registered / $capacity',
+                            '$totalRegistered / $totalCapacity',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -282,7 +405,7 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Seats Filled',
+                            'Total Seats',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.5),
                               fontSize: 10,

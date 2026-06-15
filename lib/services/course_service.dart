@@ -16,17 +16,16 @@ class CourseService {
     required String code,
     required String name,
     required String lecturer,
-    required String section,
-    required int capacity,
+    required List<Map<String, dynamic>> lectures,
+    required List<Map<String, dynamic>> labs,
   }) async {
     try {
       await _firestore.collection('subjects').add({
         'code': code.toUpperCase(),
         'name': name,
         'lecturer': lecturer,
-        'section': section,
-        'capacity': capacity,
-        'registeredCount': 0, // initially 0 students registered
+        'lectures': lectures,
+        'labs': labs,
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
