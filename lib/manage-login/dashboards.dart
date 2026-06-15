@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../manage-sub-reg/facultyregistrar/main-course.dart';
+import '../manage-sub-reg/student/register_subjects_page.dart';
 
 class StudentDashboard extends StatelessWidget {
   final String email;
@@ -152,6 +153,13 @@ class StudentDashboard extends StatelessWidget {
                         icon: Icons.app_registration,
                         title: 'Register Subjects',
                         color: Colors.teal.shade300,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterSubjectsPage(),
+                            ),
+                          );
+                        },
                       ),
                       _buildActionCard(
                         icon: Icons.calendar_month,
@@ -183,6 +191,7 @@ class StudentDashboard extends StatelessWidget {
     required IconData icon,
     required String title,
     required Color color,
+    VoidCallback? onTap,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -196,7 +205,7 @@ class StudentDashboard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {},
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
