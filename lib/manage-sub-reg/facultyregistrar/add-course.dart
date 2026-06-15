@@ -56,7 +56,14 @@ class LectureInput {
 }
 
 class AddSubjectPage extends StatefulWidget {
-  const AddSubjectPage({super.key});
+  final String? subjectId;
+  final Map<String, dynamic>? subjectData;
+
+  const AddSubjectPage({
+    super.key,
+    this.subjectId,
+    this.subjectData,
+  });
 
   @override
   State<AddSubjectPage> createState() => _AddSubjectPageState();
@@ -86,57 +93,125 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  TimeOfDay _parseTimeString(String timeStr) {
+    try {
+      final parts = timeStr.split(':');
+      return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    } catch (e) {
+      return const TimeOfDay(hour: 8, minute: 0);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     
-    // 1. Pre-populate default Lecture 01 with default Labs 01A, 01B
-    _addLecture(
-      name: '01',
-      day: 'Monday',
-      start: const TimeOfDay(hour: 8, minute: 0),
-      end: const TimeOfDay(hour: 10, minute: 0),
-      defaultLabs: [
-        {
-          'name': '01A',
-          'capacity': '30',
-          'day': 'Tuesday',
-          'start': const TimeOfDay(hour: 10, minute: 0),
-          'end': const TimeOfDay(hour: 12, minute: 0),
-        },
-        {
-          'name': '01B',
-          'capacity': '30',
-          'day': 'Tuesday',
-          'start': const TimeOfDay(hour: 14, minute: 0),
-          'end': const TimeOfDay(hour: 16, minute: 0),
-        },
-      ],
-    );
+    if (widget.subjectId != null && widget.subjectData != null) {
+      // Edit mode: Populate form fields from Firestore document data
+      final data = widget.subjectData!;
+      _codeController.text = data['code'] ?? '';
+      _nameController.text = data['name'] ?? '';
+      _lecturerController.text = data['lecturer'] ?? '';
 
-    // 2. Pre-populate default Lecture 02 with default Labs 02A, 02B
-    _addLecture(
-      name: '02',
-      day: 'Wednesday',
-      start: const TimeOfDay(hour: 14, minute: 0),
-      end: const TimeOfDay(hour: 16, minute: 0),
-      defaultLabs: [
-        {
-          'name': '02A',
-          'capacity': '30',
-          'day': 'Thursday',
-          'start': const TimeOfDay(hour: 10, minute: 0),
-          'end': const TimeOfDay(hour: 12, minute: 0),
-        },
-        {
-          'name': '02B',
-          'capacity': '30',
-          'day': 'Thursday',
-          'start': const TimeOfDay(hour: 14, minute: 0),
-          'end': const TimeOfDay(hour: 16, minute: 0),
-        },
-      ],
-    );
+      final List<dynamic> lecturesData = data['lectures'] ?? [];
+      final List<dynamic> labsData = data['labs'] ?? [];
+
+      for (var lecMap in lecturesData) {
+        final String lecName = lecMap['name'] ?? '';
+        final int lecCap = (lecMap['capacity'] as num?)?.toInt() ?? 0;
+        final String lecDay = lecMap['day'] ?? 'Monday';
+        final String lecStartStr = lecMap['startTime'] ?? '08:00';
+        final String lecEndStr = lecMap['endTime'] ?? '10:00';
+
+        final lecStart = _parseTimeString(lecStartStr);
+        final lecEnd = _parseTimeString(lecEndStr);
+
+        final List<LabInput> associatedLabs = [];
+        final lecture = LectureInput(
+          name: lecName,
+          capacity: lecCap.toString(),
+          day: lecDay,
+          startTime: lecStart,
+          endTime: lecEnd,
+          labs: associatedLabs,
+        );
+
+        for (var labMap in labsData) {
+          if (labMap['parentLecture'] == lecName) {
+            final String labName = labMap['name'] ?? '';
+            final int labCap = (labMap['capacity'] as num?)?.toInt() ?? 0;
+            final String labDay = labMap['day'] ?? 'Tuesday';
+            final String labStartStr = labMap['startTime'] ?? '10:00';
+            final String labEndStr = labMap['endTime'] ?? '12:00';
+
+            final labStart = _parseTimeString(labStartStr);
+            final labEnd = _parseTimeString(labEndStr);
+
+            final lab = LabInput(
+              name: labName,
+              capacity: labCap.toString(),
+              day: labDay,
+              startTime: labStart,
+              endTime: labEnd,
+            );
+            lab.capacityController.addListener(() => _updateLectureCapacity(lecture));
+            associatedLabs.add(lab);
+          }
+        }
+
+        _lectures.add(lecture);
+        _updateLectureCapacity(lecture);
+      }
+    } else {
+      // Add mode: Pre-populate defaults
+      // 1. Pre-populate default Lecture 01 with default Labs 01A, 01B
+      _addLecture(
+        name: '01',
+        day: 'Monday',
+        start: const TimeOfDay(hour: 8, minute: 0),
+        end: const TimeOfDay(hour: 10, minute: 0),
+        defaultLabs: [
+          {
+            'name': '01A',
+            'capacity': '30',
+            'day': 'Tuesday',
+            'start': const TimeOfDay(hour: 10, minute: 0),
+            'end': const TimeOfDay(hour: 12, minute: 0),
+          },
+          {
+            'name': '01B',
+            'capacity': '30',
+            'day': 'Tuesday',
+            'start': const TimeOfDay(hour: 14, minute: 0),
+            'end': const TimeOfDay(hour: 16, minute: 0),
+          },
+        ],
+      );
+
+      // 2. Pre-populate default Lecture 02 with default Labs 02A, 02B
+      _addLecture(
+        name: '02',
+        day: 'Wednesday',
+        start: const TimeOfDay(hour: 14, minute: 0),
+        end: const TimeOfDay(hour: 16, minute: 0),
+        defaultLabs: [
+          {
+            'name': '02A',
+            'capacity': '30',
+            'day': 'Thursday',
+            'start': const TimeOfDay(hour: 10, minute: 0),
+            'end': const TimeOfDay(hour: 12, minute: 0),
+          },
+          {
+            'name': '02B',
+            'capacity': '30',
+            'day': 'Thursday',
+            'start': const TimeOfDay(hour: 14, minute: 0),
+            'end': const TimeOfDay(hour: 16, minute: 0),
+          },
+        ],
+      );
+    }
   }
 
   // Add a new Lecture container
@@ -348,17 +423,32 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
       final messenger = ScaffoldMessenger.of(context);
       final navigator = Navigator.of(context);
 
-      await _courseService.addSubject(
-        code: code,
-        name: name,
-        lecturer: lecturer,
-        lectures: lecturesPayload,
-        labs: labsPayload,
-      );
+      if (widget.subjectId != null) {
+        // Edit Mode: Update existing subject document
+        await _courseService.updateSubject(
+          documentId: widget.subjectId!,
+          code: code,
+          name: name,
+          lecturer: lecturer,
+          lectures: lecturesPayload,
+          labs: labsPayload,
+        );
+      } else {
+        // Add Mode: Create a new subject document
+        await _courseService.addSubject(
+          code: code,
+          name: name,
+          lecturer: lecturer,
+          lectures: lecturesPayload,
+          labs: labsPayload,
+        );
+      }
 
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Subject $code added successfully!'),
+          content: Text(widget.subjectId != null
+              ? 'Subject $code updated successfully!'
+              : 'Subject $code added successfully!'),
           backgroundColor: Colors.teal,
         ),
       );
@@ -378,6 +468,8 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditMode = widget.subjectId != null;
+
     return Scaffold(
       body: Container(
         height: double.infinity,
@@ -409,9 +501,9 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          'Add New Subject',
-                          style: TextStyle(
+                        Text(
+                          isEditMode ? 'Edit Subject' : 'Add New Subject',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -578,9 +670,9 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
                                         strokeWidth: 2.5,
                                       ),
                                     )
-                                  : const Text(
-                                      'Save Subject',
-                                      style: TextStyle(
+                                  : Text(
+                                      isEditMode ? 'Update Subject' : 'Save Subject',
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),

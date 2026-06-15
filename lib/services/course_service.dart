@@ -41,4 +41,26 @@ class CourseService {
       rethrow;
     }
   }
+
+  // Update an existing subject
+  Future<void> updateSubject({
+    required String documentId,
+    required String code,
+    required String name,
+    required String lecturer,
+    required List<Map<String, dynamic>> lectures,
+    required List<Map<String, dynamic>> labs,
+  }) async {
+    try {
+      await _firestore.collection('subjects').doc(documentId).update({
+        'code': code.toUpperCase(),
+        'name': name,
+        'lecturer': lecturer,
+        'lectures': lectures,
+        'labs': labs,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

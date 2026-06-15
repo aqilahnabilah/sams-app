@@ -23,6 +23,17 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
     );
   }
 
+  void _navigateToEditSubjectPage(BuildContext context, String docId, Map<String, dynamic> data) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AddSubjectPage(
+          subjectId: docId,
+          subjectData: data,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -149,16 +160,17 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
                           final int fallbackRegistered = data['registeredCount'] ?? 0;
 
                           return _buildSubjectCard(
-                            docId: docId,
-                            code: code,
-                            name: name,
-                            lecturer: lecturer,
-                            lectures: lectures,
-                            labs: labs,
-                            fallbackSection: fallbackSection,
-                            fallbackCapacity: fallbackCapacity,
-                            fallbackRegistered: fallbackRegistered,
-                          );
+                                docId: docId,
+                                code: code,
+                                name: name,
+                                lecturer: lecturer,
+                                lectures: lectures,
+                                labs: labs,
+                                fallbackSection: fallbackSection,
+                                fallbackCapacity: fallbackCapacity,
+                                fallbackRegistered: fallbackRegistered,
+                                subjectData: data,
+                              );
                         },
                       );
                     },
@@ -211,6 +223,7 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
     required String fallbackSection,
     required int fallbackCapacity,
     required int fallbackRegistered,
+    required Map<String, dynamic> subjectData,
   }) {
     // Compute total seats capacity and registered count across sections
     int totalCapacity = 0;
@@ -269,9 +282,17 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
                         ),
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.delete_outline, color: Colors.red.shade300),
-                      onPressed: () => _confirmDelete(docId, code),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, color: Colors.tealAccent),
+                          onPressed: () => _navigateToEditSubjectPage(context, docId, subjectData),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete_outline, color: Colors.red.shade300),
+                          onPressed: () => _confirmDelete(docId, code),
+                        ),
+                      ],
                     ),
                   ],
                 ),
