@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../services/course_service.dart';
 import 'AddSubject.dart';
+import 'EditSubject.dart';
 
 class ManageCoursesPage extends StatefulWidget {
   const ManageCoursesPage({super.key});
@@ -34,7 +35,7 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
   void _navigateToEditSubjectPage(BuildContext context, String docId, Map<String, dynamic> data) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => AddSubjectPage(
+        builder: (context) => EditSubjectPage(
           subjectId: docId,
           subjectData: data,
         ),

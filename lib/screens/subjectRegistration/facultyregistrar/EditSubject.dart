@@ -55,15 +55,22 @@ class LectureInput {
   }
 }
 
-// SAMS-REQ-101: Display add subject information form
-class AddSubjectPage extends StatefulWidget {
-  const AddSubjectPage({super.key});
+// SAMS-REQ-103: Display the edit subject info form
+class EditSubjectPage extends StatefulWidget {
+  final String subjectId;
+  final Map<String, dynamic> subjectData;
+
+  const EditSubjectPage({
+    super.key,
+    required this.subjectId,
+    required this.subjectData,
+  });
 
   @override
-  State<AddSubjectPage> createState() => _AddSubjectPageState();
+  State<EditSubjectPage> createState() => _EditSubjectPageState();
 }
 
-class _AddSubjectPageState extends State<AddSubjectPage> {
+class _EditSubjectPageState extends State<EditSubjectPage> {
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
   final _nameController = TextEditingController();
@@ -106,7 +113,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     }
   }
 
-  // Formats an ISO-8601 date string (YYYY-MM-DD) to a user-friendly readable format, e.g. "16 Jun 2026"
+  //Formats an ISO-8601 date string (YYYY-MM-DD) to a user-friendly readable format, e.g. "16 Jun 2026"
   String _formatDateString(String dateStr) {
     try {
       final date = DateTime.parse(dateStr);
@@ -136,7 +143,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     }
   }
 
-  // Parses a 24-hour time string (HH:mm) into a TimeOfDay object
+  //  Parses a 24-hour time string (HH:mm) into a TimeOfDay object
   TimeOfDay _parseTimeString(String timeStr) {
     try {
       final parts = timeStr.split(':');
@@ -146,100 +153,76 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     }
   }
 
-  // Flutter lifecycle method called when the state object is created; initializes default Lectures and Labs
+  //  Flutter lifecycle method called when the state object is created; initializes form values from existing subject data
   @override
   void initState() {
     super.initState();
     
-    // Add mode: Pre-populate defaults
-    // 1. Pre-populate default Lecture 01 with default Labs 01A, 01B
-    _addLecture(
-      name: '01',
-      day: 'Monday',
-      start: const TimeOfDay(hour: 8, minute: 0),
-      end: const TimeOfDay(hour: 10, minute: 0),
-      defaultLabs: [
-        {
-          'name': '01A',
-          'capacity': '30',
-          'day': 'Tuesday',
-          'start': const TimeOfDay(hour: 10, minute: 0),
-          'end': const TimeOfDay(hour: 12, minute: 0),
-        },
-        {
-          'name': '01B',
-          'capacity': '30',
-          'day': 'Tuesday',
-          'start': const TimeOfDay(hour: 14, minute: 0),
-          'end': const TimeOfDay(hour: 16, minute: 0),
-        },
-      ],
-    );
-
-    // 2. Pre-populate default Lecture 02 with default Labs 02A, 02B
-    _addLecture(
-      name: '02',
-      day: 'Wednesday',
-      start: const TimeOfDay(hour: 14, minute: 0),
-      end: const TimeOfDay(hour: 16, minute: 0),
-      defaultLabs: [
-        {
-          'name': '02A',
-          'capacity': '30',
-          'day': 'Thursday',
-          'start': const TimeOfDay(hour: 10, minute: 0),
-          'end': const TimeOfDay(hour: 12, minute: 0),
-        },
-        {
-          'name': '02B',
-          'capacity': '30',
-          'day': 'Thursday',
-          'start': const TimeOfDay(hour: 14, minute: 0),
-          'end': const TimeOfDay(hour: 16, minute: 0),
-        },
-      ],
-    );
-  }
-
-  // Helper to dynamically add a Lecture session input, along with its nested Lab sessions
-  void _addLecture({
-    required String name,
-    required String day,
-    required TimeOfDay start,
-    required TimeOfDay end,
-    List<Map<String, dynamic>> defaultLabs = const [],
-  }) {
-    final List<LabInput> labs = [];
-    final lecture = LectureInput(
-      name: name,
-      capacity: '0',
-      day: day,
-      startTime: start,
-      endTime: end,
-      labs: labs,
-    );
-
-    for (var labData in defaultLabs) {
-      final lab = LabInput(
-        name: labData['name'],
-        capacity: labData['capacity'],
-        day: labData['day'],
-        startTime: labData['start'],
-        endTime: labData['end'],
-      );
-      // Auto-update parent capacity when child lab capacity is updated
-      lab.capacityController.addListener(() => _updateLectureCapacity(lecture));
-      labs.add(lab);
+    // Populate form fields from Firestore document data
+    final data = widget.subjectData;
+    _codeController.text = data['code'] ?? '';
+    _nameController.text = data['name'] ?? '';
+    _lecturerController.text = data['lecturer'] ?? '';
+    _examDateController.text = data['examDate'] != null ? _formatDateString(data['examDate']) : '';
+    _selectedExamDate = _parseIsoDateString(data['examDate']);
+    final String rawExamTime = data['examTime'] ?? '';
+    if (rawExamTime.isNotEmpty) {
+      _selectedExamTime = _parseTimeString(rawExamTime);
+      _examTimeController.text = _formatTime24hTo12h(rawExamTime);
     }
 
-    setState(() {
-      _lectures.add(lecture);
-    });
+    final List<dynamic> lecturesData = data['lectures'] ?? [];
+    final List<dynamic> labsData = data['labs'] ?? [];
 
-    _updateLectureCapacity(lecture);
+    for (var lecMap in lecturesData) {
+      final String lecName = lecMap['name'] ?? '';
+      final int lecCap = (lecMap['capacity'] as num?)?.toInt() ?? 0;
+      final String lecDay = lecMap['day'] ?? 'Monday';
+      final String lecStartStr = lecMap['startTime'] ?? '08:00';
+      final String lecEndStr = lecMap['endTime'] ?? '10:00';
+
+      final lecStart = _parseTimeString(lecStartStr);
+      final lecEnd = _parseTimeString(lecEndStr);
+
+      final List<LabInput> associatedLabs = [];
+      final lecture = LectureInput(
+        name: lecName,
+        capacity: lecCap.toString(),
+        day: lecDay,
+        startTime: lecStart,
+        endTime: lecEnd,
+        labs: associatedLabs,
+      );
+
+      for (var labMap in labsData) {
+        if (labMap['parentLecture'] == lecName) {
+          final String labName = labMap['name'] ?? '';
+          final int labCap = (labMap['capacity'] as num?)?.toInt() ?? 0;
+          final String labDay = labMap['day'] ?? 'Tuesday';
+          final String labStartStr = labMap['startTime'] ?? '10:00';
+          final String labEndStr = labMap['endTime'] ?? '12:00';
+
+          final labStart = _parseTimeString(labStartStr);
+          final labEnd = _parseTimeString(labEndStr);
+
+          final lab = LabInput(
+            name: labName,
+            capacity: labCap.toString(),
+            day: labDay,
+            startTime: labStart,
+            endTime: labEnd,
+          );
+          lab.capacityController.addListener(() => _updateLectureCapacity(lecture));
+          associatedLabs.add(lab);
+        }
+      }
+
+      _lectures.add(lecture);
+      _updateLectureCapacity(lecture);
+    }
   }
 
-  // Adds a nested Lab session input under the specified Lecture session
+  //  Adds a nested Lab session input under the specified Lecture session
   void _addLabToLecture(LectureInput lecture) {
     final lecName = lecture.nameController.text.trim();
     
@@ -273,7 +256,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     _updateLectureCapacity(lecture);
   }
 
-  // Automatically updates the read-only Lecture capacity input by summing the capacities of all its nested Labs
+  // : Automatically updates the read-only Lecture capacity input by summing the capacities of all its nested Labs
   void _updateLectureCapacity(LectureInput lecture) {
     int totalCap = 0;
     for (var lab in lecture.labs) {
@@ -299,7 +282,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     });
   }
 
-  // Removes a nested Lab session input from under the specified Lecture session
+  //  Removes a nested Lab session input from under the specified Lecture session
   void _removeLab(LectureInput lecture, int labIndex) {
     if (lecture.labs.length <= 1) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -314,7 +297,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     _updateLectureCapacity(lecture);
   }
 
-  // Flutter lifecycle method called when the state object is destroyed; disposes of all controllers to release memory
+  //  Flutter lifecycle method called when the state object is destroyed; disposes of all controllers to release memory
   @override
   void dispose() {
     _codeController.dispose();
@@ -328,20 +311,20 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     super.dispose();
   }
 
-  // Formats a TimeOfDay object to a user-friendly local time string, e.g. "9:00 AM" or "2:30 PM"
+  //  Formats a TimeOfDay object to a user-friendly local time string, e.g. "9:00 AM" or "2:30 PM"
   String _formatTimeOfDay(BuildContext context, TimeOfDay time) {
     final localizations = MaterialLocalizations.of(context);
     return localizations.formatTimeOfDay(time, alwaysUse24HourFormat: false);
   }
 
-  // Converts a TimeOfDay object to a standard 24-hour time string (HH:mm) for database persistence
+  //  Converts a TimeOfDay object to a standard 24-hour time string (HH:mm) for database persistence
   String _to24hString(TimeOfDay time) {
     final hour = time.hour.toString().padLeft(2, '0');
     final minute = time.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
   }
 
-  // Validates class session times, ensuring the End Time is after the Start Time and duration is at least 2 hours
+  //  Validates class session times, ensuring the End Time is after the Start Time and duration is at least 2 hours
   bool _validateClassTimes(String name, String type, TimeOfDay start, TimeOfDay end) {
     final startMins = start.hour * 60 + start.minute;
     final endMins = end.hour * 60 + end.minute;
@@ -364,7 +347,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     return true;
   }
 
-  // Validates the entire form, builds the lecture and lab data payloads, and adds the new subject to Firestore
+  //  Validates the entire form, builds the lecture and lab data payloads, and updates the existing subject in Firestore
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -421,8 +404,9 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
       final messenger = ScaffoldMessenger.of(context);
       final navigator = Navigator.of(context);
 
-      // Add Mode: Create a new subject document
-      await _courseService.addSubject(
+      // Edit Mode: Update existing subject document
+      await _courseService.updateSubject(
+        documentId: widget.subjectId,
         code: code,
         name: name,
         lecturer: lecturer,
@@ -434,7 +418,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
 
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Subject $code added successfully!'),
+          content: Text('Subject $code updated successfully!'),
           backgroundColor: Colors.teal,
         ),
       );
@@ -452,10 +436,9 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     }
   }
 
-  // Flutter build method that describes the UI hierarchy of the Add New Subject screen
+  //  Flutter build method that describes the UI hierarchy of the Edit Subject screen
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: Container(
         height: double.infinity,
@@ -488,7 +471,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
                         ),
                         const SizedBox(width: 8),
                         const Text(
-                          'Add New Subject',
+                          'Edit Subject',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 24,
@@ -499,7 +482,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // SAMS-REQ-101: Display add subject information form
+                    // SAMS-REQ-103: Display the edit subject info form
                     // Card Form Container
                     Container(
                       padding: const EdgeInsets.all(24),
@@ -691,28 +674,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              TextButton.icon(
-                                onPressed: () => _addLecture(
-                                  name: '',
-                                  day: 'Monday',
-                                  start: const TimeOfDay(hour: 8, minute: 0),
-                                  end: const TimeOfDay(hour: 10, minute: 0),
-                                  defaultLabs: [
-                                    {
-                                      'name': '',
-                                      'capacity': '30',
-                                      'day': 'Tuesday',
-                                      'start': const TimeOfDay(hour: 10, minute: 0),
-                                      'end': const TimeOfDay(hour: 12, minute: 0),
-                                    }
-                                  ],
-                                ),
-                                icon: const Icon(Icons.add, size: 18, color: Colors.tealAccent),
-                                label: const Text(
-                                  'Add Lecture',
-                                  style: TextStyle(color: Colors.tealAccent, fontSize: 13),
-                                ),
-                              ),
+                              // No adding sections in Edit Mode for simplicity or keep it same as add
                             ],
                           ),
                           const SizedBox(height: 12),
@@ -761,7 +723,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
                                       ),
                                     )
                                   : const Text(
-                                      'Save Subject',
+                                      'Update Subject',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -782,7 +744,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     );
   }
 
-  // Widget builder that builds the card UI for a Lecture section, including its fields and nested Labs list
+  //  Widget builder that builds the card UI for a Lecture section, including its fields and nested Labs list
   Widget _buildLectureCard(LectureInput lec, int index) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -797,7 +759,6 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Row 1: Lecture Section, Capacity, Delete button
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -847,7 +808,6 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
             ],
           ),
           const SizedBox(height: 12),
-          // Row 2: Day selection
           DropdownButtonFormField<String>(
             value: lec.day,
             style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -871,7 +831,6 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
             },
           ),
           const SizedBox(height: 12),
-          // Row 3: Start Time & End Time
           Row(
             children: [
               Expanded(
@@ -918,7 +877,6 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
           Container(height: 1, color: Colors.white.withOpacity(0.12)),
           const SizedBox(height: 16),
           
-          // Lab Sub-section Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -947,7 +905,6 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
           ),
           const SizedBox(height: 12),
           
-          // Nested Lab Cards List
           if (lec.labs.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -977,7 +934,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     );
   }
 
-  // Widget builder that builds the card UI for a nested Lab section under a Lecture
+  //  Widget builder that builds the card UI for a nested Lab section under a Lecture
   Widget _buildNestedLabCard(LectureInput lec, LabInput lab, int labIndex) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -989,7 +946,6 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Row 1: Lab Section, Capacity, Delete button
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -1038,7 +994,6 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
             ],
           ),
           const SizedBox(height: 10),
-          // Row 2: Day selection
           DropdownButtonFormField<String>(
             value: lab.day,
             style: const TextStyle(color: Colors.white, fontSize: 13),
@@ -1062,7 +1017,6 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
             },
           ),
           const SizedBox(height: 10),
-          // Row 3: Start Time & End Time
           Row(
             children: [
               Expanded(
@@ -1163,7 +1117,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     );
   }
 
-  // Helper that creates a uniform glassmorphic InputDecoration for text form fields and dropdowns
+  //  Helper that creates a uniform glassmorphic InputDecoration for text form fields and dropdowns
   InputDecoration _buildInputDecoration({
     required String label,
     IconData? icon,
