@@ -2,9 +2,9 @@
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import '../manage-sub-reg/facultyregistrar/main-course.dart';
-import '../manage-sub-reg/student/list_subject.dart';
-import '../manage-sub-reg/advisor/subject_approvals.dart';
+import '../screens/subjectRegistration/facultyregistrar/main-course.dart';
+import '../screens/subjectRegistration/student/list_subject.dart';
+import '../screens/subjectRegistration/advisor/subject_approvals.dart';
 
 class StudentDashboard extends StatelessWidget {
   final String email;

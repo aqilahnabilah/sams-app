@@ -2,7 +2,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../../services/course_service.dart';
+import '../../../services/course_service.dart';
 import 'add-course.dart';
 
 class ManageCoursesPage extends StatefulWidget {

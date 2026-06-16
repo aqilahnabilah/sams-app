@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../../services/course_service.dart';
+import '../../../services/course_service.dart';
+import '../../../models/SubjectRegistrationModel.dart';
 
 class SubjectApprovalsPage extends StatefulWidget {
   const SubjectApprovalsPage({super.key});
@@ -179,20 +180,8 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                         separatorBuilder: (context, index) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final doc = docs[index];
-                          final regId = doc.id;
-                          final data = doc.data() as Map<String, dynamic>;
-
-                          final String studentName = data['studentName'] ?? '';
-                          final String studentEmail = data['studentEmail'] ?? '';
-                          final String subjectId = data['subjectId'] ?? '';
-                          final String subjectCode = data['subjectCode'] ?? '';
-                          final String subjectName = data['subjectName'] ?? '';
-                          final String sectionName = data['sectionName'] ?? '';
-                          final String labSectionName = data['labSectionName'] ?? '';
-                          final List<dynamic> lectures = data['lectures'] ?? [];
-                          final List<dynamic> labs = data['labs'] ?? [];
-
-                          final bool isProcessing = _processingItems[regId] ?? false;
+                          final reg = SubjectRegistrationModel.fromDocument(doc);
+                          final bool isProcessing = _processingItems[reg.id] ?? false;
 
                           return Container(
                             padding: const EdgeInsets.all(20),
@@ -214,7 +203,7 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          studentName,
+                                          reg.studentName,
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 18,
@@ -223,7 +212,7 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          studentEmail,
+                                          reg.studentEmail,
                                           style: TextStyle(
                                             color: Colors.white.withOpacity(0.5),
                                             fontSize: 12,
@@ -268,7 +257,7 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
-                                        subjectCode,
+                                        reg.subjectCode,
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 12,
@@ -279,7 +268,7 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        subjectName,
+                                        reg.subjectName,
                                         style: const TextStyle(
                                           color: Colors.white70,
                                           fontSize: 15,
@@ -292,7 +281,7 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  'Selected Section: $sectionName' + (labSectionName.isNotEmpty ? ' | Lab: $labSectionName' : ''),
+                                  'Selected Section: ${reg.sectionName}' + (reg.labSectionName.isNotEmpty ? ' | Lab: ${reg.labSectionName}' : ''),
                                   style: const TextStyle(
                                     color: Colors.tealAccent,
                                     fontSize: 14,
@@ -300,19 +289,19 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                if (lectures.isNotEmpty) ...[
+                                if (reg.lectures.isNotEmpty) ...[
                                   Text(
-                                    'Lecture: ${lectures[0]['day']} • ${lectures[0]['startTime']}-${lectures[0]['endTime']}',
+                                    'Lecture: ${reg.lectures[0]['day']} • ${reg.lectures[0]['startTime']}-${reg.lectures[0]['endTime']}',
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.7),
                                       fontSize: 13,
                                     ),
                                   ),
                                 ],
-                                if (labs.isNotEmpty) ...[
+                                if (reg.labs.isNotEmpty) ...[
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Lab: ${labs[0]['day']} • ${labs[0]['startTime']}-${labs[0]['endTime']}',
+                                    'Lab: ${reg.labs[0]['day']} • ${reg.labs[0]['startTime']}-${reg.labs[0]['endTime']}',
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.6),
                                       fontSize: 12,
@@ -330,7 +319,7 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                                     TextButton(
                                       onPressed: isProcessing
                                           ? null
-                                          : () => _handleReject(regId, studentName, subjectCode),
+                                          : () => _handleReject(reg.id, reg.studentName, reg.subjectCode),
                                       style: TextButton.styleFrom(
                                         foregroundColor: Colors.redAccent,
                                       ),
@@ -345,12 +334,12 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                                       onPressed: isProcessing
                                           ? null
                                           : () => _handleApprove(
-                                                regId,
-                                                subjectId,
-                                                sectionName,
-                                                labSectionName,
-                                                studentName,
-                                                subjectCode,
+                                                reg.id,
+                                                reg.subjectId,
+                                                reg.sectionName,
+                                                reg.labSectionName,
+                                                reg.studentName,
+                                                reg.subjectCode,
                                               ),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.green.shade600,

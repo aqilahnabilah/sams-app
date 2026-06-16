@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/SubjectRegistrationModel.dart';
 
 class CourseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -65,31 +66,9 @@ class CourseService {
   }
 
   // Submit subject registration for approval
-  Future<void> submitRegistration({
-    required String studentEmail,
-    required String studentName,
-    required String subjectId,
-    required String subjectCode,
-    required String subjectName,
-    required String sectionName,
-    String? labSectionName,
-    required List<dynamic> lectures,
-    required List<dynamic> labs,
-  }) async {
+  Future<void> submitRegistration(SubjectRegistrationModel registration) async {
     try {
-      await _firestore.collection('registrations').add({
-        'studentEmail': studentEmail,
-        'studentName': studentName,
-        'subjectId': subjectId,
-        'subjectCode': subjectCode,
-        'subjectName': subjectName,
-        'sectionName': sectionName,
-        'labSectionName': labSectionName ?? '',
-        'lectures': lectures,
-        'labs': labs,
-        'status': 'pending',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      await _firestore.collection('registrations').add(registration.toMap());
     } catch (e) {
       rethrow;
     }

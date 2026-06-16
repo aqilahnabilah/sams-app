@@ -1,6 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../../services/course_service.dart';
+import '../../../controllers/SubjectRegistrationController.dart';
 
 class RegisterSubjectPage extends StatefulWidget {
   final String studentEmail;
@@ -27,139 +26,10 @@ class RegisterSubjectPage extends StatefulWidget {
 }
 
 class _RegisterSubjectPageState extends State<RegisterSubjectPage> {
-  final CourseService _courseService = CourseService();
+  final SubjectRegistrationController _registrationController = SubjectRegistrationController();
   String? _selectedSection;
   String? _selectedLab;
   bool _isRegistering = false;
-
-  // Converts "HH:mm" to total minutes from midnight
-  int _timeToMinutes(String timeStr) {
-    try {
-      final parts = timeStr.split(':');
-      final hour = int.parse(parts[0]);
-      final minute = int.parse(parts[1]);
-      return hour * 60 + minute;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  // Checks overlap: s1 < e2 && s2 < e1
-  bool _isOverlapping(
-    String day1,
-    String start1,
-    String end1,
-    String day2,
-    String start2,
-    String end2,
-  ) {
-    if (day1.trim().toLowerCase() != day2.trim().toLowerCase()) return false;
-    final s1 = _timeToMinutes(start1);
-    final e1 = _timeToMinutes(end1);
-    final s2 = _timeToMinutes(start2);
-    final e2 = _timeToMinutes(end2);
-    return s1 < e2 && s2 < e1;
-  }
-
-  // Validates schedule clashes with existing pending or approved registrations
-  Future<bool> _checkScheduleClash(Map<String, dynamic> selectedLecture, List<dynamic> selectedLabs) async {
-    final QuerySnapshot existingRegs = await FirebaseFirestore.instance
-        .collection('registrations')
-        .where('studentEmail', isEqualTo: widget.studentEmail)
-        .get();
-
-    for (var doc in existingRegs.docs) {
-      final regData = doc.data() as Map<String, dynamic>;
-      final String status = regData['status'] ?? 'pending';
-
-      // Skip rejected registrations
-      if (status == 'rejected') continue;
-
-      final List<dynamic> regLectures = regData['lectures'] ?? [];
-      final List<dynamic> regLabs = regData['labs'] ?? [];
-
-      // 1. Check selected lecture against existing registered lectures
-      for (var regLec in regLectures) {
-        if (_isOverlapping(
-          selectedLecture['day'] ?? '',
-          selectedLecture['startTime'] ?? '',
-          selectedLecture['endTime'] ?? '',
-          regLec['day'] ?? '',
-          regLec['startTime'] ?? '',
-          regLec['endTime'] ?? '',
-        )) {
-          return true;
-        }
-      }
-
-      // 2. Check selected lecture against existing registered labs
-      for (var regLab in regLabs) {
-        if (_isOverlapping(
-          selectedLecture['day'] ?? '',
-          selectedLecture['startTime'] ?? '',
-          selectedLecture['endTime'] ?? '',
-          regLab['day'] ?? '',
-          regLab['startTime'] ?? '',
-          regLab['endTime'] ?? '',
-        )) {
-          return true;
-        }
-      }
-
-      // 3. Check selected labs against existing registered lectures
-      for (var selLab in selectedLabs) {
-        for (var regLec in regLectures) {
-          if (_isOverlapping(
-            selLab['day'] ?? '',
-            selLab['startTime'] ?? '',
-            selLab['endTime'] ?? '',
-            regLec['day'] ?? '',
-            regLec['startTime'] ?? '',
-            regLec['endTime'] ?? '',
-          )) {
-            return true;
-          }
-        }
-      }
-
-      // 4. Check selected labs against existing registered labs
-      for (var selLab in selectedLabs) {
-        for (var regLab in regLabs) {
-          if (_isOverlapping(
-            selLab['day'] ?? '',
-            selLab['startTime'] ?? '',
-            selLab['endTime'] ?? '',
-            regLab['day'] ?? '',
-            regLab['startTime'] ?? '',
-            regLab['endTime'] ?? '',
-          )) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
-  }
-
-  Future<bool> _checkAlreadyRegistered() async {
-    try {
-      final QuerySnapshot existingRegs = await FirebaseFirestore.instance
-          .collection('registrations')
-          .where('studentEmail', isEqualTo: widget.studentEmail)
-          .where('subjectId', isEqualTo: widget.subjectId)
-          .get();
-
-      for (var doc in existingRegs.docs) {
-        final regData = doc.data() as Map<String, dynamic>;
-        final String status = regData['status'] ?? 'pending';
-        if (status == 'pending' || status == 'approved') {
-          return true;
-        }
-      }
-    } catch (_) {}
-    return false;
-  }
 
   Future<void> _handleRegister() async {
     if (_selectedSection == null) {
@@ -186,7 +56,10 @@ class _RegisterSubjectPageState extends State<RegisterSubjectPage> {
 
     try {
       // Check if student has already registered for this subject (either approved or pending)
-      final hasAlreadyRegistered = await _checkAlreadyRegistered();
+      final hasAlreadyRegistered = await _registrationController.checkAlreadyRegistered(
+        studentEmail: widget.studentEmail,
+        subjectId: widget.subjectId,
+      );
       if (hasAlreadyRegistered) {
         if (mounted) {
           showDialog(
@@ -241,7 +114,11 @@ class _RegisterSubjectPageState extends State<RegisterSubjectPage> {
       }
 
       // Check clash
-      final hasClash = await _checkScheduleClash(selectedLec, chosenLabs);
+      final hasClash = await _registrationController.checkScheduleClash(
+        studentEmail: widget.studentEmail,
+        selectedLecture: selectedLec,
+        selectedLabs: chosenLabs,
+      );
       if (hasClash) {
         if (mounted) {
           showDialog(
@@ -275,7 +152,7 @@ class _RegisterSubjectPageState extends State<RegisterSubjectPage> {
       }
 
       // Submit registration
-      await _courseService.submitRegistration(
+      await _registrationController.submitRegistration(
         studentEmail: widget.studentEmail,
         studentName: widget.studentName,
         subjectId: widget.subjectId,

@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../services/course_service.dart';
+import '../../../services/course_service.dart';
 
 // Model to hold the state of a single lab session input
 class LabInput {
