@@ -14,6 +14,14 @@ class ManageCoursesPage extends StatefulWidget {
 
 class _ManageCoursesPageState extends State<ManageCoursesPage> {
   final CourseService _courseService = CourseService();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _navigateToAddSubjectPage(BuildContext context) {
     Navigator.of(context).push(
@@ -85,6 +93,45 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
                 ),
                 const SizedBox(height: 16),
 
+                // Search Bar Container
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.12),
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Search by subject code or name...',
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
+                      prefixIcon: const Icon(Icons.search, color: Colors.tealAccent),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.white60),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _searchQuery = '';
+                                });
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value.trim().toLowerCase();
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 20),
+
                 // Real-time Subjects Stream
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
@@ -139,12 +186,44 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
 
                       final docs = snapshot.data!.docs;
 
+                      // Filter documents in memory by search query
+                      final filteredDocs = docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final code = (data['code'] ?? '').toString().toLowerCase();
+                        final name = (data['name'] ?? '').toString().toLowerCase();
+                        return code.contains(_searchQuery) || name.contains(_searchQuery);
+                      }).toList();
+
+                      if (filteredDocs.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off_outlined,
+                                size: 80,
+                                color: Colors.white.withOpacity(0.15),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No matches found for "$_searchQuery".',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.5),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
                       return ListView.separated(
                         physics: const BouncingScrollPhysics(),
-                        itemCount: docs.length,
+                        itemCount: filteredDocs.length,
                         separatorBuilder: (context, index) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
-                          final doc = docs[index];
+                          final doc = filteredDocs[index];
                           final data = doc.data() as Map<String, dynamic>;
                           final String docId = doc.id;
                           
@@ -191,6 +270,20 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
     );
   }
 
+  String _formatDateString(String dateStr) {
+    if (dateStr.isEmpty) return 'Not set';
+    try {
+      final date = DateTime.parse(dateStr);
+      final months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      return '${date.day} ${months[date.month - 1]} ${date.year}';
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
   String _format24hTime(String time24h) {
     try {
       final parts = time24h.split(':');
@@ -228,6 +321,8 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
     // Compute total seats capacity and registered count across sections
     int totalCapacity = 0;
     int totalRegistered = 0;
+    final String examDate = subjectData['examDate'] ?? '';
+    final String examTime = subjectData['examTime'] ?? '';
 
     if (lectures.isNotEmpty) {
       for (var lec in lectures) {
@@ -326,6 +421,13 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
                         children: [
                           _buildDetailRow(Icons.person_outline, lecturer),
                           const SizedBox(height: 8),
+                          if (examDate.isNotEmpty) ...[
+                             _buildDetailRow(
+                               Icons.calendar_today,
+                               'Exam: ${_formatDateString(examDate)}' + (examTime.isNotEmpty ? ' @ ${_format24hTime(examTime)}' : ''),
+                             ),
+                             const SizedBox(height: 8),
+                           ],
                           
                           // Display grouped lectures & labs
                           if (lectures.isNotEmpty) ...[
@@ -352,7 +454,7 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
-                                            'Lec $lecName: ${_formatDayShort(lecDay)} ${_format24hTime(lecStart)}-${_format24hTime(lecEnd)} ($lecReg/$lecCap)',
+                                            'Lec $lecName ($lecReg/$lecCap)',
                                             style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 12,
@@ -385,7 +487,7 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
                                                 border: Border.all(color: Colors.white.withOpacity(0.08)),
                                               ),
                                               child: Text(
-                                                '$labName ($labReg/$labCap) • ${_formatDayShort(labDay)} ${_format24hTime(labStart)}-${_format24hTime(labEnd)}',
+                                                '$labName ($labReg/$labCap)',
                                                 style: TextStyle(
                                                   color: Colors.white.withOpacity(0.7),
                                                   fontSize: 10,

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../services/course_service.dart';
 import 'RegisterSubject.dart';
+import 'ListRegisteredSubject.dart';
 
 class RegisterSubjectsPage extends StatefulWidget {
   final String studentEmail;
@@ -62,7 +63,7 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
                     ),
                     const SizedBox(width: 8),
                     const Text(
-                      'Available Subjects',
+                      'Subject Registration',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -110,9 +111,102 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
                     },
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
-                // Real-time Stream listing
+                // Button/Card to redirect to ListRegisteredSubject
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.08),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => ListRegisteredSubjectsPage(
+                              studentEmail: widget.studentEmail,
+                              studentName: widget.studentName,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 20.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.teal.shade500.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.assignment_turned_in_outlined,
+                                    color: Colors.tealAccent,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'My Registered Subjects',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'View status, drop classes, or notify advisor.',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.5),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.tealAccent,
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Available Subjects Section Title
+                const Text(
+                  'Available Subjects',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Real-time Stream listing for Available Subjects
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
                     stream: _courseService.getSubjectsStream(),
@@ -151,7 +245,7 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
                       return ListView.separated(
                         physics: const BouncingScrollPhysics(),
                         itemCount: filteredDocs.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 16),
+                        separatorBuilder: (context, index) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final doc = filteredDocs[index];
                           final data = doc.data() as Map<String, dynamic>;
@@ -160,15 +254,20 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
                           final String code = data['code'] ?? '';
                           final String name = data['name'] ?? '';
                           final List<dynamic> lectures = data['lectures'] ?? [];
-                          final List<dynamic> labs = data['labs'] ?? [];
+                           final List<dynamic> labs = data['labs'] ?? [];
                           
                           final int fallbackCapacity = data['capacity'] ?? 0;
                           final int fallbackRegistered = data['registeredCount'] ?? 0;
+
+                          final String examDate = data['examDate'] ?? '';
+                          final String examTime = data['examTime'] ?? '';
 
                           return _buildSubjectCard(
                             docId: docId,
                             code: code,
                             name: name,
+                            examDate: examDate,
+                            examTime: examTime,
                             lectures: lectures,
                             labs: labs,
                             fallbackCapacity: fallbackCapacity,
@@ -194,15 +293,15 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
         children: [
           Icon(
             Icons.menu_book,
-            size: 80,
+            size: 60,
             color: Colors.white.withOpacity(0.15),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Text(
             message,
             style: TextStyle(
               color: Colors.white.withOpacity(0.5),
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -215,6 +314,8 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
     required String docId,
     required String code,
     required String name,
+    required String examDate,
+    required String examTime,
     required List<dynamic> lectures,
     required List<dynamic> labs,
     required int fallbackCapacity,
@@ -263,6 +364,8 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
                           subjectId: docId,
                           subjectCode: code,
                           subjectName: name,
+                          examDate: examDate,
+                          examTime: examTime,
                           lectures: lectures,
                           labs: labs,
                         ),
@@ -305,7 +408,7 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
                           name,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 20,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

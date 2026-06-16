@@ -7,6 +7,8 @@ class RegisterSubjectPage extends StatefulWidget {
   final String subjectId;
   final String subjectCode;
   final String subjectName;
+  final String examDate;
+  final String examTime;
   final List<dynamic> lectures;
   final List<dynamic> labs;
 
@@ -17,6 +19,8 @@ class RegisterSubjectPage extends StatefulWidget {
     required this.subjectId,
     required this.subjectCode,
     required this.subjectName,
+    required this.examDate,
+    required this.examTime,
     required this.lectures,
     required this.labs,
   });
@@ -30,6 +34,35 @@ class _RegisterSubjectPageState extends State<RegisterSubjectPage> {
   String? _selectedSection;
   String? _selectedLab;
   bool _isRegistering = false;
+
+  String _formatDateString(String dateStr) {
+    if (dateStr.isEmpty) return 'Not set';
+    try {
+      final date = DateTime.parse(dateStr);
+      final months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      return '${date.day} ${months[date.month - 1]} ${date.year}';
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
+  String _formatTime24hTo12h(String timeStr) {
+    if (timeStr.isEmpty) return '';
+    try {
+      final parts = timeStr.split(':');
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+      final ampm = hour >= 12 ? 'PM' : 'AM';
+      final hour12 = hour % 12 == 0 ? 12 : hour % 12;
+      final minStr = minute.toString().padLeft(2, '0');
+      return '$hour12:$minStr $ampm';
+    } catch (_) {
+      return timeStr;
+    }
+  }
 
   Future<void> _handleRegister() async {
     if (_selectedSection == null) {
@@ -160,6 +193,8 @@ class _RegisterSubjectPageState extends State<RegisterSubjectPage> {
         subjectName: widget.subjectName,
         sectionName: _selectedSection!,
         labSectionName: _selectedLab,
+        examDate: widget.examDate,
+        examTime: widget.examTime,
         lectures: [
           {
             'name': selectedLec['name'],
@@ -279,6 +314,23 @@ class _RegisterSubjectPageState extends State<RegisterSubjectPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      if (widget.examDate.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Icon(Icons.calendar_today, size: 14, color: Colors.white.withOpacity(0.5)),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Exam: ${_formatDateString(widget.examDate)}' + (widget.examTime.isNotEmpty ? ' @ ${_formatTime24hTo12h(widget.examTime)}' : ''),
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),

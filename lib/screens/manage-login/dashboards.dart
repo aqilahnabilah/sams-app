@@ -1,10 +1,10 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-import '../screens/subjectRegistration/facultyregistrar/main-course.dart';
-import '../screens/subjectRegistration/student/list_subject.dart';
-import '../screens/subjectRegistration/advisor/subject_approvals.dart';
+import '../../services/auth_service.dart';
+import '../subjectRegistration/facultyregistrar/main-course.dart';
+import '../subjectRegistration/student/list_subject.dart';
+import '../subjectRegistration/advisor/subject_approvals.dart';
 
 class StudentDashboard extends StatelessWidget {
   final String email;

@@ -74,6 +74,10 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
   final _codeController = TextEditingController();
   final _nameController = TextEditingController();
   final _lecturerController = TextEditingController();
+  final _examDateController = TextEditingController();
+  final _examTimeController = TextEditingController();
+  DateTime? _selectedExamDate;
+  TimeOfDay? _selectedExamTime;
   
   // List of days of the week for scheduling
   final List<String> _daysOfWeek = [
@@ -92,6 +96,47 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
   final CourseService _courseService = CourseService();
   bool _isLoading = false;
   String? _errorMessage;
+
+  String _toIsoDateString(DateTime date) {
+    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+  }
+
+  DateTime? _parseIsoDateString(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return null;
+    try {
+      return DateTime.parse(dateStr);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _formatDateString(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      final months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      return '${date.day} ${months[date.month - 1]} ${date.year}';
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
+  String _formatTime24hTo12h(String timeStr) {
+    if (timeStr.isEmpty) return '';
+    try {
+      final parts = timeStr.split(':');
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+      final ampm = hour >= 12 ? 'PM' : 'AM';
+      final hour12 = hour % 12 == 0 ? 12 : hour % 12;
+      final minStr = minute.toString().padLeft(2, '0');
+      return '$hour12:$minStr $ampm';
+    } catch (_) {
+      return timeStr;
+    }
+  }
 
   TimeOfDay _parseTimeString(String timeStr) {
     try {
@@ -112,6 +157,13 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
       _codeController.text = data['code'] ?? '';
       _nameController.text = data['name'] ?? '';
       _lecturerController.text = data['lecturer'] ?? '';
+      _examDateController.text = data['examDate'] != null ? _formatDateString(data['examDate']) : '';
+      _selectedExamDate = _parseIsoDateString(data['examDate']);
+      final String rawExamTime = data['examTime'] ?? '';
+      if (rawExamTime.isNotEmpty) {
+        _selectedExamTime = _parseTimeString(rawExamTime);
+        _examTimeController.text = _formatTime24hTo12h(rawExamTime);
+      }
 
       final List<dynamic> lecturesData = data['lectures'] ?? [];
       final List<dynamic> labsData = data['labs'] ?? [];
@@ -330,6 +382,8 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     _codeController.dispose();
     _nameController.dispose();
     _lecturerController.dispose();
+    _examDateController.dispose();
+    _examTimeController.dispose();
     for (var section in _lectures) {
       section.dispose();
     }
@@ -391,6 +445,8 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
       final code = _codeController.text.trim();
       final name = _nameController.text.trim();
       final lecturer = _lecturerController.text.trim();
+      final examDate = _selectedExamDate != null ? _toIsoDateString(_selectedExamDate!) : '';
+      final examTime = _selectedExamTime != null ? _to24hString(_selectedExamTime!) : '';
 
       // Build flatten payloads
       List<Map<String, dynamic>> lecturesPayload = [];
@@ -430,6 +486,8 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
           code: code,
           name: name,
           lecturer: lecturer,
+          examDate: examDate,
+          examTime: examTime,
           lectures: lecturesPayload,
           labs: labsPayload,
         );
@@ -439,6 +497,8 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
           code: code,
           name: name,
           lecturer: lecturer,
+          examDate: examDate,
+          examTime: examTime,
           lectures: lecturesPayload,
           labs: labsPayload,
         );
@@ -586,6 +646,109 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
                               }
                               return null;
                             },
+                          ),
+                          const SizedBox(height: 20),
+
+                          Row(
+                            children: [
+                              // Exam Date Picker
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: _selectedExamDate ?? DateTime.now(),
+                                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                                      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            colorScheme: const ColorScheme.dark(
+                                              primary: Colors.tealAccent,
+                                              onPrimary: Colors.black,
+                                              surface: Color(0xFF1F1C2C),
+                                              onSurface: Colors.white,
+                                            ),
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+                                    if (picked != null) {
+                                      setState(() {
+                                        _selectedExamDate = picked;
+                                        _examDateController.text = _formatDateString(_toIsoDateString(picked));
+                                      });
+                                    }
+                                  },
+                                  child: IgnorePointer(
+                                    child: TextFormField(
+                                      controller: _examDateController,
+                                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                                      decoration: _buildInputDecoration(
+                                        label: 'Exam Date',
+                                        icon: Icons.calendar_today,
+                                        isDense: true,
+                                      ),
+                                      validator: (value) {
+                                        if (value == null || value.trim().isEmpty) {
+                                          return 'Required';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // Exam Time Picker
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () async {
+                                    final picked = await showTimePicker(
+                                      context: context,
+                                      initialTime: _selectedExamTime ?? const TimeOfDay(hour: 9, minute: 0),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            colorScheme: const ColorScheme.dark(
+                                              primary: Colors.tealAccent,
+                                              onPrimary: Colors.black,
+                                              surface: Color(0xFF1F1C2C),
+                                              onSurface: Colors.white,
+                                            ),
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+                                    if (picked != null) {
+                                      setState(() {
+                                        _selectedExamTime = picked;
+                                        _examTimeController.text = _formatTime24hTo12h(_to24hString(picked));
+                                      });
+                                    }
+                                  },
+                                  child: IgnorePointer(
+                                    child: TextFormField(
+                                      controller: _examTimeController,
+                                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                                      decoration: _buildInputDecoration(
+                                        label: 'Exam Time',
+                                        icon: Icons.access_time,
+                                        isDense: true,
+                                      ),
+                                      validator: (value) {
+                                        if (value == null || value.trim().isEmpty) {
+                                          return 'Required';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 32),
 

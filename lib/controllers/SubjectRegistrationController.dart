@@ -152,6 +152,8 @@ class SubjectRegistrationController {
     required String subjectName,
     required String sectionName,
     String? labSectionName,
+    required String examDate,
+    required String examTime,
     required List<dynamic> lectures,
     required List<dynamic> labs,
   }) async {
@@ -167,6 +169,8 @@ class SubjectRegistrationController {
       lectures: lectures.map((lec) => Map<String, dynamic>.from(lec as Map)).toList(),
       labs: labs.map((lab) => Map<String, dynamic>.from(lab as Map)).toList(),
       status: 'pending',
+      examDate: examDate,
+      examTime: examTime,
     );
     await _courseService.submitRegistration(model);
   }

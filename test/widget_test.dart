@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sams/manage-login/login_page.dart';
+import 'package:sams/screens/manage-login/login_page.dart';
 
 void main() {
   testWidgets('LoginPage UI renders email, password fields and login button', (WidgetTester tester) async {

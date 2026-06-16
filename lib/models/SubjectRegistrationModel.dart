@@ -12,6 +12,8 @@ class SubjectRegistrationModel {
   final List<Map<String, dynamic>> lectures;
   final List<Map<String, dynamic>> labs;
   final String status;
+  final String examDate;
+  final String examTime;
   final DateTime? createdAt;
 
   SubjectRegistrationModel({
@@ -26,6 +28,8 @@ class SubjectRegistrationModel {
     required this.lectures,
     required this.labs,
     required this.status,
+    required this.examDate,
+    required this.examTime,
     this.createdAt,
   });
 
@@ -63,6 +67,8 @@ class SubjectRegistrationModel {
       lectures: parsedLectures,
       labs: parsedLabs,
       status: data['status'] ?? 'pending',
+      examDate: data['examDate'] ?? '',
+      examTime: data['examTime'] ?? '',
       createdAt: parsedCreatedAt,
     );
   }
@@ -80,6 +86,8 @@ class SubjectRegistrationModel {
       'lectures': lectures,
       'labs': labs,
       'status': status,
+      'examDate': examDate,
+      'examTime': examTime,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
