@@ -150,7 +150,6 @@ class CourseService {
     return _firestore
         .collection('registrations')
         .where('status', isEqualTo: 'pending')
-        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 

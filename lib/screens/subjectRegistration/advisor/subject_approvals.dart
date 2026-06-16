@@ -172,7 +172,17 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                         );
                       }
 
-                      final docs = snapshot.data!.docs;
+                      final docs = List<QueryDocumentSnapshot>.from(snapshot.data!.docs);
+                      docs.sort((a, b) {
+                        final aData = a.data() as Map<String, dynamic>;
+                        final bData = b.data() as Map<String, dynamic>;
+                        final aTime = aData['createdAt'] as Timestamp?;
+                        final bTime = bData['createdAt'] as Timestamp?;
+                        if (aTime == null && bTime == null) return 0;
+                        if (aTime == null) return 1;
+                        if (bTime == null) return -1;
+                        return bTime.compareTo(aTime);
+                      });
 
                       return ListView.separated(
                         physics: const BouncingScrollPhysics(),

@@ -591,7 +591,9 @@ class _EditSubjectPageState extends State<EditSubjectPage> {
                             children: [
                               // Exam Date Picker
                               Expanded(
-                                child: InkWell(
+                                child: TextFormField(
+                                  controller: _examDateController,
+                                  readOnly: true,
                                   onTap: () async {
                                     final picked = await showDatePicker(
                                       context: context,
@@ -604,7 +606,7 @@ class _EditSubjectPageState extends State<EditSubjectPage> {
                                             colorScheme: const ColorScheme.dark(
                                               primary: Colors.tealAccent,
                                               onPrimary: Colors.black,
-                                              surface: Color(0xFF1F1C2C),
+                                              surface: const Color(0xFF1F1C2C),
                                               onSurface: Colors.white,
                                             ),
                                           ),
@@ -619,29 +621,32 @@ class _EditSubjectPageState extends State<EditSubjectPage> {
                                       });
                                     }
                                   },
-                                  child: IgnorePointer(
-                                    child: TextFormField(
-                                      controller: _examDateController,
-                                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                                      decoration: _buildInputDecoration(
-                                        label: 'Exam Date',
-                                        icon: Icons.calendar_today,
-                                        isDense: true,
-                                      ),
-                                      validator: (value) {
-                                        if (value == null || value.trim().isEmpty) {
-                                          return 'Required';
-                                        }
-                                        return null;
-                                      },
-                                    ),
+                                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                                  decoration: _buildInputDecoration(
+                                    label: 'Exam Date',
+                                    icon: Icons.calendar_today,
+                                    isDense: true,
+                                    suffixIcon: _examDateController.text.isNotEmpty
+                                        ? IconButton(
+                                            icon: const Icon(Icons.clear, size: 16, color: Colors.white60),
+                                            onPressed: () {
+                                              setState(() {
+                                                _selectedExamDate = null;
+                                                _examDateController.clear();
+                                              });
+                                            },
+                                          )
+                                        : null,
                                   ),
+                                  validator: (value) => null, // Optional field
                                 ),
                               ),
                               const SizedBox(width: 16),
                               // Exam Time Picker
                               Expanded(
-                                child: InkWell(
+                                child: TextFormField(
+                                  controller: _examTimeController,
+                                  readOnly: true,
                                   onTap: () async {
                                     final picked = await showTimePicker(
                                       context: context,
@@ -652,7 +657,7 @@ class _EditSubjectPageState extends State<EditSubjectPage> {
                                             colorScheme: const ColorScheme.dark(
                                               primary: Colors.tealAccent,
                                               onPrimary: Colors.black,
-                                              surface: Color(0xFF1F1C2C),
+                                              surface: const Color(0xFF1F1C2C),
                                               onSurface: Colors.white,
                                             ),
                                           ),
@@ -667,23 +672,24 @@ class _EditSubjectPageState extends State<EditSubjectPage> {
                                       });
                                     }
                                   },
-                                  child: IgnorePointer(
-                                    child: TextFormField(
-                                      controller: _examTimeController,
-                                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                                      decoration: _buildInputDecoration(
-                                        label: 'Exam Time',
-                                        icon: Icons.access_time,
-                                        isDense: true,
-                                      ),
-                                      validator: (value) {
-                                        if (value == null || value.trim().isEmpty) {
-                                          return 'Required';
-                                        }
-                                        return null;
-                                      },
-                                    ),
+                                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                                  decoration: _buildInputDecoration(
+                                    label: 'Exam Time',
+                                    icon: Icons.access_time,
+                                    isDense: true,
+                                    suffixIcon: _examTimeController.text.isNotEmpty
+                                        ? IconButton(
+                                            icon: const Icon(Icons.clear, size: 16, color: Colors.white60),
+                                            onPressed: () {
+                                              setState(() {
+                                                _selectedExamTime = null;
+                                                _examTimeController.clear();
+                                              });
+                                            },
+                                          )
+                                        : null,
                                   ),
+                                  validator: (value) => null, // Optional field
                                 ),
                               ),
                             ],
@@ -1151,6 +1157,7 @@ class _EditSubjectPageState extends State<EditSubjectPage> {
     IconData? icon,
     bool isDense = false,
     String? hintText,
+    Widget? suffixIcon,
   }) {
     return InputDecoration(
       labelText: label,
@@ -1171,6 +1178,7 @@ class _EditSubjectPageState extends State<EditSubjectPage> {
               size: isDense ? 16 : 24,
             )
           : null,
+      suffixIcon: suffixIcon,
       contentPadding: isDense ? const EdgeInsets.symmetric(vertical: 10, horizontal: 10) : null,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
