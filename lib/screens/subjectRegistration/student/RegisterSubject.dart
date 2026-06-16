@@ -7,6 +7,7 @@ class RegisterSubjectPage extends StatefulWidget {
   final String subjectId;
   final String subjectCode;
   final String subjectName;
+  final int creditHour;
   final String examDate;
   final String examTime;
   final List<dynamic> lectures;
@@ -19,6 +20,7 @@ class RegisterSubjectPage extends StatefulWidget {
     required this.subjectId,
     required this.subjectCode,
     required this.subjectName,
+    required this.creditHour,
     required this.examDate,
     required this.examTime,
     required this.lectures,
@@ -195,6 +197,7 @@ class _RegisterSubjectPageState extends State<RegisterSubjectPage> {
         labSectionName: _selectedLab,
         examDate: widget.examDate,
         examTime: widget.examTime,
+        creditHour: widget.creditHour,
         lectures: [
           {
             'name': selectedLec['name'],

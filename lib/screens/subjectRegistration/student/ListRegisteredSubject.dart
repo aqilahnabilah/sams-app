@@ -260,6 +260,7 @@ class _ListRegisteredSubjectsPageState extends State<ListRegisteredSubjectsPage>
                           final List<dynamic> labs = regData['labs'] ?? [];
                           final String examDate = regData['examDate'] ?? '';
                           final String examTime = regData['examTime'] ?? '';
+                          final int creditHour = regData['creditHour'] ?? 0;
 
                           final bool isProcessing = _processingItems[regId] ?? false;
 
@@ -301,20 +302,43 @@ class _ListRegisteredSubjectsPageState extends State<ListRegisteredSubjectsPage>
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        code,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.08),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            code,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.06),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: Colors.white.withOpacity(0.12),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '$creditHour Credits',
+                                            style: TextStyle(
+                                              color: Colors.white.withOpacity(0.9),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -408,26 +432,6 @@ class _ListRegisteredSubjectsPageState extends State<ListRegisteredSubjectsPage>
                                     ],
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-                                if (lectures.isNotEmpty) ...[
-                                  Text(
-                                    'Lecture: ${lectures[0]['day']} • ${lectures[0]['startTime']}-${lectures[0]['endTime']}',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.6),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                                if (labs.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Lab: ${labs[0]['day']} • ${labs[0]['startTime']}-${labs[0]['endTime']}',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.5),
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
                                 if (notified) ...[
                                   const SizedBox(height: 12),
                                   Row(

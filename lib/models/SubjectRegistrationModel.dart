@@ -14,6 +14,7 @@ class SubjectRegistrationModel {
   final String status;
   final String examDate;
   final String examTime;
+  final int creditHour;
   final DateTime? createdAt;
 
   SubjectRegistrationModel({
@@ -30,6 +31,7 @@ class SubjectRegistrationModel {
     required this.status,
     required this.examDate,
     required this.examTime,
+    required this.creditHour,
     this.createdAt,
   });
 
@@ -69,6 +71,7 @@ class SubjectRegistrationModel {
       status: data['status'] ?? 'pending',
       examDate: data['examDate'] ?? '',
       examTime: data['examTime'] ?? '',
+      creditHour: data['creditHour'] ?? 0,
       createdAt: parsedCreatedAt,
     );
   }
@@ -88,6 +91,7 @@ class SubjectRegistrationModel {
       'status': status,
       'examDate': examDate,
       'examTime': examTime,
+      'creditHour': creditHour,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }

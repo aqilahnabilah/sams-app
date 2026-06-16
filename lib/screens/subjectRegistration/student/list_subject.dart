@@ -254,10 +254,11 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
                           final String code = data['code'] ?? '';
                           final String name = data['name'] ?? '';
                           final List<dynamic> lectures = data['lectures'] ?? [];
-                           final List<dynamic> labs = data['labs'] ?? [];
+                          final List<dynamic> labs = data['labs'] ?? [];
                           
                           final int fallbackCapacity = data['capacity'] ?? 0;
                           final int fallbackRegistered = data['registeredCount'] ?? 0;
+                          final int creditHour = data['creditHour'] ?? 0;
 
                           final String examDate = data['examDate'] ?? '';
                           final String examTime = data['examTime'] ?? '';
@@ -266,6 +267,7 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
                             docId: docId,
                             code: code,
                             name: name,
+                            creditHour: creditHour,
                             examDate: examDate,
                             examTime: examTime,
                             lectures: lectures,
@@ -314,6 +316,7 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
     required String docId,
     required String code,
     required String name,
+    required int creditHour,
     required String examDate,
     required String examTime,
     required List<dynamic> lectures,
@@ -364,6 +367,7 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
                           subjectId: docId,
                           subjectCode: code,
                           subjectName: name,
+                          creditHour: creditHour,
                           examDate: examDate,
                           examTime: examTime,
                           lectures: lectures,
@@ -383,24 +387,49 @@ class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Code Badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.teal.shade500.withOpacity(0.25),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: Colors.teal.shade400.withOpacity(0.4),
+                        // Code & Credit Hour Badge Row
+                        Row(
+                          children: [
+                            // Code Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.teal.shade500.withOpacity(0.25),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Colors.teal.shade400.withOpacity(0.4),
+                                ),
+                              ),
+                              child: Text(
+                                code,
+                                style: const TextStyle(
+                                  color: Colors.tealAccent,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            code,
-                            style: const TextStyle(
-                              color: Colors.tealAccent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                            const SizedBox(width: 8),
+                            // Credit Hour Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.06),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.12),
+                                ),
+                              ),
+                              child: Text(
+                                '$creditHour Credits',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                         const SizedBox(height: 12),
                         // Subject Name

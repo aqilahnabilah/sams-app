@@ -154,6 +154,7 @@ class SubjectRegistrationController {
     String? labSectionName,
     required String examDate,
     required String examTime,
+    required int creditHour,
     required List<dynamic> lectures,
     required List<dynamic> labs,
   }) async {
@@ -171,6 +172,7 @@ class SubjectRegistrationController {
       status: 'pending',
       examDate: examDate,
       examTime: examTime,
+      creditHour: creditHour,
     );
     await _courseService.submitRegistration(model);
   }
