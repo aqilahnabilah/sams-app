@@ -97,8 +97,8 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF1D2671),
-              Color(0xFFC33764),
+              Color(0xFF0B192C),
+              Color(0xFF1E3E62),
             ],
           ),
         ),
@@ -289,36 +289,6 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Selected Section: ${reg.sectionName}' + (reg.labSectionName.isNotEmpty ? ' | Lab: ${reg.labSectionName}' : ''),
-                                  style: const TextStyle(
-                                    color: Colors.tealAccent,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                if (reg.lectures.isNotEmpty) ...[
-                                  Text(
-                                    'Lecture: ${reg.lectures[0]['day']} • ${reg.lectures[0]['startTime']}-${reg.lectures[0]['endTime']}',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ],
-                                if (reg.labs.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Lab: ${reg.labs[0]['day']} • ${reg.labs[0]['startTime']}-${reg.labs[0]['endTime']}',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.6),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-
                                 const SizedBox(height: 20),
 
                                 // Action Buttons Row

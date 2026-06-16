@@ -263,8 +263,8 @@ class LecturerDashboard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF1D2671),
-              Color(0xFFC33764),
+              Color(0xFF0B192C),
+              Color(0xFF1E3E62),
             ],
           ),
         ),
