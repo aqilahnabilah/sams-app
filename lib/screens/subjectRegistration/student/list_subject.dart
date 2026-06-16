@@ -3,7 +3,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../services/course_service.dart';
-import 'register_subject.dart';
+import 'RegisterSubject.dart';
 
 class RegisterSubjectsPage extends StatefulWidget {
   final String studentEmail;

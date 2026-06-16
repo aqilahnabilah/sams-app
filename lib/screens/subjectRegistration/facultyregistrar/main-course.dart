@@ -3,7 +3,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../services/course_service.dart';
-import 'add-course.dart';
+import 'AddSubject.dart';
 
 class ManageCoursesPage extends StatefulWidget {
   const ManageCoursesPage({super.key});
