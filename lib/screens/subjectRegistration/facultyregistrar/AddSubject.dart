@@ -68,6 +68,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
   final _codeController = TextEditingController();
   final _nameController = TextEditingController();
   final _lecturerController = TextEditingController();
+  final _creditController = TextEditingController();
   final _examDateController = TextEditingController();
   final _examTimeController = TextEditingController();
   DateTime? _selectedExamDate;
@@ -320,6 +321,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
     _codeController.dispose();
     _nameController.dispose();
     _lecturerController.dispose();
+    _creditController.dispose();
     _examDateController.dispose();
     _examTimeController.dispose();
     for (var section in _lectures) {
@@ -387,6 +389,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
       final code = _codeController.text.trim();
       final name = _nameController.text.trim();
       final lecturer = _lecturerController.text.trim();
+      final creditHour = int.parse(_creditController.text.trim());
       final examDate = _selectedExamDate != null ? _toIsoDateString(_selectedExamDate!) : '';
       final examTime = _selectedExamTime != null ? _to24hString(_selectedExamTime!) : '';
 
@@ -426,6 +429,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
         code: code,
         name: name,
         lecturer: lecturer,
+        creditHour: creditHour,
         examDate: examDate,
         examTime: examTime,
         lectures: lecturesPayload,
@@ -570,6 +574,29 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
                                 return 'Please enter lecturer name';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Credit Hour
+                          TextFormField(
+                            controller: _creditController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            style: const TextStyle(color: Colors.white),
+                            decoration: _buildInputDecoration(
+                              label: 'Credit Hour',
+                              icon: Icons.hourglass_empty,
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter credit hour';
+                              }
+                              final parsed = int.tryParse(value);
+                              if (parsed == null || parsed <= 0) {
+                                return 'Must be a positive number';
                               }
                               return null;
                             },
