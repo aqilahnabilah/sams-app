@@ -17,6 +17,7 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
   final CourseService _courseService = CourseService();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final Set<String> _expandedSubjectIds = {};
 
   @override
   void dispose() {
@@ -324,6 +325,7 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
     int totalRegistered = 0;
     final String examDate = subjectData['examDate'] ?? '';
     final String examTime = subjectData['examTime'] ?? '';
+    final int creditHour = subjectData['creditHour'] ?? 0;
 
     if (lectures.isNotEmpty) {
       for (var lec in lectures) {
@@ -334,6 +336,8 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
       totalCapacity = fallbackCapacity;
       totalRegistered = fallbackRegistered;
     }
+
+    final isExpanded = _expandedSubjectIds.contains(docId);
 
     return Container(
       decoration: BoxDecoration(
@@ -348,191 +352,133 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
         borderRadius: BorderRadius.circular(24),
         child: Material(
           color: Colors.transparent,
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Card Header: Subject Code Badge & Delete Button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                if (_expandedSubjectIds.contains(docId)) {
+                  _expandedSubjectIds.remove(docId);
+                } else {
+                  _expandedSubjectIds.add(docId);
+                }
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Card Header: Subject Code Badge & Delete Button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.indigo.shade500.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.indigo.shade400.withOpacity(0.5),
+                              ),
+                            ),
+                            child: Text(
+                              code,
+                              style: const TextStyle(
+                                color: Colors.tealAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.12),
+                              ),
+                            ),
+                            child: Text(
+                              '$creditHour Credits',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.indigo.shade500.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: Colors.indigo.shade400.withOpacity(0.5),
-                        ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, color: Colors.tealAccent),
+                            onPressed: () => _navigateToEditSubjectPage(context, docId, subjectData),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete_outline, color: Colors.red.shade300),
+                            onPressed: () => _confirmDelete(docId, code),
+                          ),
+                          Icon(
+                            isExpanded ? Icons.expand_less : Icons.expand_more,
+                            color: Colors.white70,
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        code,
-                        style: const TextStyle(
-                          color: Colors.tealAccent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, color: Colors.tealAccent),
-                          onPressed: () => _navigateToEditSubjectPage(context, docId, subjectData),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete_outline, color: Colors.red.shade300),
-                          onPressed: () => _confirmDelete(docId, code),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 const SizedBox(height: 12),
 
                 // Subject Name
-                Text(
-                  name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Divider line
-                Container(
-                  height: 1,
-                  color: Colors.white.withOpacity(0.1),
-                ),
-                const SizedBox(height: 16),
-
-                // Details Row
+                // Subject Name & Total Seats Badge Row
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildDetailRow(Icons.person_outline, lecturer),
-                          const SizedBox(height: 8),
-                          if (examDate.isNotEmpty) ...[
-                             _buildDetailRow(
-                               Icons.calendar_today,
-                               'Exam: ${_formatDateString(examDate)}' + (examTime.isNotEmpty ? ' @ ${_format24hTime(examTime)}' : ''),
-                             ),
-                             const SizedBox(height: 8),
-                           ],
-                          
-                          // Display grouped lectures & labs
-                          if (lectures.isNotEmpty) ...[
-                            ...lectures.map<Widget>((lec) {
-                              final lecName = lec['name'] ?? '';
-                              final lecDay = lec['day'] ?? '';
-                              final lecStart = lec['startTime'] ?? '';
-                              final lecEnd = lec['endTime'] ?? '';
-                              final lecCap = lec['capacity'] ?? 0;
-                              final lecReg = lec['registeredCount'] ?? 0;
-
-                              // Filter labs that belong to this lecture section
-                              final assocLabs = labs.where((lab) => lab['parentLecture'] == lecName).toList();
-
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 10.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Lecture header line
-                                    Row(
-                                      children: [
-                                        Icon(Icons.menu_book_outlined, size: 16, color: Colors.tealAccent.withOpacity(0.8)),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            'Lec $lecName ($lecReg/$lecCap)',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    if (assocLabs.isNotEmpty) ...[
-                                      const SizedBox(height: 6),
-                                      Padding(
-                                        padding: const EdgeInsets.only(left: 24.0),
-                                        child: Wrap(
-                                          spacing: 6,
-                                          runSpacing: 6,
-                                          children: assocLabs.map<Widget>((lab) {
-                                            final labName = lab['name'] ?? '';
-                                            final labCap = lab['capacity'] ?? 0;
-                                            final labReg = lab['registeredCount'] ?? 0;
-                                            final labDay = lab['day'] ?? '';
-                                            final labStart = lab['startTime'] ?? '';
-                                            final labEnd = lab['endTime'] ?? '';
-
-                                            return Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white.withOpacity(0.04),
-                                                borderRadius: BorderRadius.circular(6),
-                                                border: Border.all(color: Colors.white.withOpacity(0.08)),
-                                              ),
-                                              child: Text(
-                                                '$labName ($labReg/$labCap)',
-                                                style: TextStyle(
-                                                  color: Colors.white.withOpacity(0.7),
-                                                  fontSize: 10,
-                                                ),
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              );
-                            })
-                          ] else ...[
-                            _buildDetailRow(Icons.meeting_room_outlined, 'Section: $fallbackSection'),
-                          ],
-                        ],
+                      child: Text(
+                        name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     // Aggregated Total Capacity Badge
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             '$totalRegistered / $totalCapacity',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           Text(
                             'Total Seats',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.5),
-                              fontSize: 10,
+                              fontSize: 8,
                             ),
                           ),
                         ],
@@ -540,13 +486,117 @@ class _ManageCoursesPageState extends State<ManageCoursesPage> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+
+                if (isExpanded) ...[
+                  // Divider line
+                  Container(
+                    height: 1,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Details Column
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDetailRow(Icons.person_outline, lecturer),
+                      const SizedBox(height: 8),
+                      if (examDate.isNotEmpty) ...[
+                         _buildDetailRow(
+                           Icons.calendar_today,
+                           'Exam: ${_formatDateString(examDate)}' + (examTime.isNotEmpty ? ' @ ${_format24hTime(examTime)}' : ''),
+                         ),
+                         const SizedBox(height: 8),
+                       ],
+                      
+                      // Display grouped lectures & labs
+                      if (lectures.isNotEmpty) ...[
+                        ...lectures.map<Widget>((lec) {
+                          final lecName = lec['name'] ?? '';
+                          final lecDay = lec['day'] ?? '';
+                          final lecStart = lec['startTime'] ?? '';
+                          final lecEnd = lec['endTime'] ?? '';
+                          final lecCap = lec['capacity'] ?? 0;
+                          final lecReg = lec['registeredCount'] ?? 0;
+
+                          // Filter labs that belong to this lecture section
+                          final assocLabs = labs.where((lab) => lab['parentLecture'] == lecName).toList();
+
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 10.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Lecture header line
+                                Row(
+                                  children: [
+                                    Icon(Icons.menu_book_outlined, size: 16, color: Colors.tealAccent.withOpacity(0.8)),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Lec $lecName ($lecReg/$lecCap)',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (assocLabs.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 24.0),
+                                    child: Wrap(
+                                      spacing: 6,
+                                      runSpacing: 6,
+                                      children: assocLabs.map<Widget>((lab) {
+                                        final labName = lab['name'] ?? '';
+                                        final labCap = lab['capacity'] ?? 0;
+                                        final labReg = lab['registeredCount'] ?? 0;
+                                        final labDay = lab['day'] ?? '';
+                                        final labStart = lab['startTime'] ?? '';
+                                        final labEnd = lab['endTime'] ?? '';
+
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.04),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: Colors.white.withOpacity(0.08)),
+                                          ),
+                                          child: Text(
+                                            '$labName ($labReg/$labCap)',
+                                            style: TextStyle(
+                                              color: Colors.white.withOpacity(0.7),
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        })
+                      ] else ...[
+                        _buildDetailRow(Icons.meeting_room_outlined, 'Section: $fallbackSection'),
+                      ],
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildDetailRow(IconData icon, String text) {
     return Row(
