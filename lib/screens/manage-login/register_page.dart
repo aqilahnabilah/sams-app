@@ -1,7 +1,10 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../../provider/Authentication/AuthController.dart';
+import '../../provider/Authentication/RegisterController.dart';
+import '../../domain/Authentication/UserModel.dart';
 import 'dashboards.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -13,22 +16,17 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
+  final _userIdController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
 
-  bool _isLoading = false;
   bool _obscurePassword = true;
-  String? _errorMessage;
-
-  // Selected role: 'student', 'lecturer', 'faculty_registrar'
-  String _selectedRole = 'student';
+  String _selectedRole = UserModel.roleStudent;
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
+    _userIdController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -36,68 +34,26 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final userCredential = await _authService.registerWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        name: _nameController.text.trim(),
-        role: _selectedRole,
-      );
-
-      final user = userCredential.user;
-      if (user != null) {
-        // Update user display name in Firebase Auth profile
-        await user.updateDisplayName(_nameController.text.trim());
-        
-        if (mounted) {
-          _routeToDashboard(_selectedRole, user.email ?? '', _nameController.text.trim());
-        }
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  void _routeToDashboard(String role, String email, String name) {
-    Widget nextScreen;
-    switch (role) {
-      case 'student':
-        nextScreen = StudentDashboard(email: email, name: name);
-        break;
-      case 'lecturer':
-        nextScreen = LecturerDashboard(email: email, name: name);
-        break;
-      case 'faculty_registrar':
-        nextScreen = RegistrarDashboard(email: email, name: name);
-        break;
-      default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invalid role: $role')),
-        );
-        return;
-    }
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => nextScreen),
-      (route) => false,
+    final registerCtrl = context.read<RegisterController>();
+    final success = await registerCtrl.register(
+      userId: _userIdController.text.trim(),
+      username: _usernameController.text.trim(),
+      password: _passwordController.text.trim(),
+      role: _selectedRole,
     );
+
+    if (success && mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registration successful! Please login.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>();
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -155,40 +111,44 @@ class _RegisterPageState extends State<RegisterPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Name Input
+                          const Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // User ID Input
                           TextFormField(
-                            controller: _nameController,
+                            controller: _userIdController,
                             style: const TextStyle(color: Colors.white),
                             decoration: _buildInputDecoration(
-                              label: 'Full Name',
-                              icon: Icons.person_outline,
+                              label: 'User ID (e.g. CB23026)',
+                              icon: Icons.badge_outlined,
                             ),
                             validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your full name';
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter your User ID';
                               }
                               return null;
                             },
                           ),
                           const SizedBox(height: 16),
 
-                          // Email Input
+                          // Username Input
                           TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
+                            controller: _usernameController,
                             style: const TextStyle(color: Colors.white),
                             decoration: _buildInputDecoration(
-                              label: 'Email Address',
-                              icon: Icons.email_outlined,
+                              label: 'Full Name',
+                              icon: Icons.person_outline,
                             ),
                             validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
-                              }
-                              final emailRegex = RegExp(
-                                  r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+");
-                              if (!emailRegex.hasMatch(value)) {
-                                return 'Please enter a valid email address';
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter your full name';
                               }
                               return null;
                             },
@@ -259,46 +219,43 @@ class _RegisterPageState extends State<RegisterPage> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
 
-                          // Role Selection Header
-                          const Text(
-                            'Select Your Role',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                          // Role Selection Dropdown
+                          DropdownButtonFormField<String>(
+                            value: _selectedRole,
+                            dropdownColor: const Color(0xFF203A43),
+                            style: const TextStyle(color: Colors.white),
+                            decoration: _buildInputDecoration(
+                              label: 'Select Role',
+                              icon: Icons.work_outline,
                             ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Role Cards
-                          _buildRoleCard(
-                            roleValue: 'student',
-                            title: 'Student',
-                            description: 'Register and view subjects',
-                            icon: Icons.school,
-                          ),
-                          const SizedBox(height: 8),
-                          _buildRoleCard(
-                            roleValue: 'lecturer',
-                            title: 'Lecturer',
-                            description: 'Manage class rosters and grading',
-                            icon: Icons.menu_book,
-                          ),
-                          const SizedBox(height: 8),
-                          _buildRoleCard(
-                            roleValue: 'faculty_registrar',
-                            title: 'Faculty Registrar',
-                            description: 'Administer system registration parameters',
-                            icon: Icons.admin_panel_settings,
+                            items: [
+                              UserModel.roleStudent,
+                              UserModel.roleLecturer,
+                              UserModel.roleTreasury,
+                              UserModel.rolePusatAdab,
+                              UserModel.roleFacultyRegistrar,
+                            ].map((String role) {
+                              return DropdownMenuItem<String>(
+                                value: role,
+                                child: Text(role),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _selectedRole = newValue;
+                                });
+                              }
+                            },
                           ),
 
                           // Error Message display
-                          if (_errorMessage != null) ...[
+                          if (auth.errorMessage != null) ...[
                             const SizedBox(height: 16),
                             Text(
-                              _errorMessage!,
+                              auth.errorMessage!,
                               style: TextStyle(
                                 color: Colors.red.shade300,
                                 fontSize: 13,
@@ -322,8 +279,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                 ),
                                 elevation: 0,
                               ),
-                              onPressed: _isLoading ? null : _handleRegister,
-                              child: _isLoading
+                              onPressed: auth.isLoading ? null : _handleRegister,
+                              child: auth.isLoading
                                   ? const SizedBox(
                                       height: 24,
                                       width: 24,
@@ -388,72 +345,6 @@ class _RegisterPageState extends State<RegisterPage> {
         borderSide: BorderSide(
           color: Colors.red.shade400,
           width: 2,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRoleCard({
-    required String roleValue,
-    required String title,
-    required String description,
-    required IconData icon,
-  }) {
-    final isSelected = _selectedRole == roleValue;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedRole = roleValue;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.teal.withOpacity(0.25) : Colors.white.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? Colors.teal : Colors.white.withOpacity(0.1),
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.tealAccent : Colors.white70,
-              size: 28,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.white.withOpacity(0.8),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white70 : Colors.white.withOpacity(0.5),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              const Icon(
-                Icons.check_circle,
-                color: Colors.tealAccent,
-                size: 20,
-              ),
-          ],
         ),
       ),
     );
