@@ -1,7 +1,10 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../../provider/Authentication/AuthController.dart';
+import '../../provider/Authentication/RegisterController.dart';
+import '../../domain/Authentication/UserModel.dart';
 import 'dashboards.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -13,6 +16,7 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
+<<<<<<< HEAD
 
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -29,18 +33,26 @@ class _RegisterPageState extends State<RegisterPage> {
   final _statusController = TextEditingController(text: 'Active');
 
   final _authService = AuthService();
+=======
+  final _userIdController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+>>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
 
-  bool _isLoading = false;
   bool _obscurePassword = true;
+<<<<<<< HEAD
   String? _errorMessage;
 
   // Selected role: 'student', 'lecturer', 'faculty_registrar', 'pusat_adab'
   String _selectedRole = 'student';
+=======
+  String _selectedRole = UserModel.roleStudent;
+>>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
+    _userIdController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     _programCodeController.dispose();
     _programNameController.dispose();
@@ -55,6 +67,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
+<<<<<<< HEAD
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -143,11 +156,28 @@ class _RegisterPageState extends State<RegisterPage> {
         builder: (context) => nextScreen,
       ),
       (route) => false,
+=======
+    final registerCtrl = context.read<RegisterController>();
+    final success = await registerCtrl.register(
+      userId: _userIdController.text.trim(),
+      username: _usernameController.text.trim(),
+      password: _passwordController.text.trim(),
+      role: _selectedRole,
+>>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
     );
+
+    if (success && mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registration successful! Please login.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>();
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -207,16 +237,30 @@ class _RegisterPageState extends State<RegisterPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+<<<<<<< HEAD
+=======
+                          const Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // User ID Input
+>>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
                           TextFormField(
-                            controller: _nameController,
+                            controller: _userIdController,
                             style: const TextStyle(color: Colors.white),
                             decoration: _buildInputDecoration(
-                              label: 'Full Name',
-                              icon: Icons.person_outline,
+                              label: 'User ID (e.g. CB23026)',
+                              icon: Icons.badge_outlined,
                             ),
                             validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your full name';
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter your User ID';
                               }
                               return null;
                             },
@@ -224,15 +268,19 @@ class _RegisterPageState extends State<RegisterPage> {
 
                           const SizedBox(height: 16),
 
+<<<<<<< HEAD
+=======
+                          // Username Input
+>>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
                           TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
+                            controller: _usernameController,
                             style: const TextStyle(color: Colors.white),
                             decoration: _buildInputDecoration(
-                              label: 'Email Address',
-                              icon: Icons.email_outlined,
+                              label: 'Full Name',
+                              icon: Icons.person_outline,
                             ),
                             validator: (value) {
+<<<<<<< HEAD
                               if (value == null || value.isEmpty) {
                                 return 'Please enter your email';
                               }
@@ -243,6 +291,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
                               if (!emailRegex.hasMatch(value)) {
                                 return 'Please enter a valid email address';
+=======
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter your full name';
+>>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
                               }
 
                               return null;
@@ -316,6 +368,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               return null;
                             },
                           ),
+<<<<<<< HEAD
 
                           const SizedBox(height: 24),
 
@@ -367,9 +420,45 @@ class _RegisterPageState extends State<RegisterPage> {
                           _buildRoleExtraFields(),
 
                           if (_errorMessage != null) ...[
+=======
+                          const SizedBox(height: 16),
+
+                          // Role Selection Dropdown
+                          DropdownButtonFormField<String>(
+                            value: _selectedRole,
+                            dropdownColor: const Color(0xFF203A43),
+                            style: const TextStyle(color: Colors.white),
+                            decoration: _buildInputDecoration(
+                              label: 'Select Role',
+                              icon: Icons.work_outline,
+                            ),
+                            items: [
+                              UserModel.roleStudent,
+                              UserModel.roleLecturer,
+                              UserModel.roleTreasury,
+                              UserModel.rolePusatAdab,
+                              UserModel.roleFacultyRegistrar,
+                            ].map((String role) {
+                              return DropdownMenuItem<String>(
+                                value: role,
+                                child: Text(role),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _selectedRole = newValue;
+                                });
+                              }
+                            },
+                          ),
+
+                          // Error Message display
+                          if (auth.errorMessage != null) ...[
+>>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
                             const SizedBox(height: 16),
                             Text(
-                              _errorMessage!,
+                              auth.errorMessage!,
                               style: TextStyle(
                                 color: Colors.red.shade300,
                                 fontSize: 13,
@@ -392,8 +481,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                 ),
                                 elevation: 0,
                               ),
-                              onPressed: _isLoading ? null : _handleRegister,
-                              child: _isLoading
+                              onPressed: auth.isLoading ? null : _handleRegister,
+                              child: auth.isLoading
                                   ? const SizedBox(
                                       height: 24,
                                       width: 24,
@@ -625,6 +714,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
     );
   }
+<<<<<<< HEAD
 
   Widget _buildRoleCard({
     required String roleValue,
@@ -701,4 +791,6 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
     );
   }
+=======
+>>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
 }

@@ -1,7 +1,10 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../../provider/Authentication/AuthController.dart';
+import '../../provider/Authentication/LoginController.dart';
+import '../../domain/Authentication/UserModel.dart';
 import 'dashboards.dart';
 import 'register_page.dart';
 
@@ -14,17 +17,14 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _userIdController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
 
-  bool _isLoading = false;
   bool _obscurePassword = true;
-  String? _errorMessage;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _userIdController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -32,20 +32,19 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final loginCtrl = context.read<LoginController>();
+    final success = await loginCtrl.login(
+      _userIdController.text.trim(),
+      _passwordController.text,
+    );
 
-    try {
-      // 1. Sign in with Firebase Auth
-      final userCredential = await _authService.signInWithEmailAndPassword(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
+    if (!mounted) return;
 
-      final user = userCredential.user;
+    if (success) {
+      final auth = context.read<AuthController>();
+      final user = auth.currentUser;
       if (user != null) {
+<<<<<<< HEAD
         // 2. Fetch the user's role from Firestore
         final role = await _authService.getUserRole(user.uid);
 
@@ -75,21 +74,30 @@ class _LoginPageState extends State<LoginPage> {
         setState(() {
           _isLoading = false;
         });
+=======
+        _routeToDashboard(user.role, user.userId, user.username);
+>>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
       }
     }
   }
 
-  void _routeToDashboard(String role, String email, String name) {
+  void _routeToDashboard(String role, String userId, String name) {
     Widget nextScreen;
     switch (role) {
-      case 'student':
-        nextScreen = StudentDashboard(email: email, name: name);
+      case UserModel.roleStudent:
+        nextScreen = StudentDashboard(userId: userId, name: name);
         break;
-      case 'lecturer':
-        nextScreen = LecturerDashboard(email: email, name: name);
+      case UserModel.roleLecturer:
+        nextScreen = LecturerDashboard(userId: userId, name: name);
         break;
-      case 'faculty_registrar':
-        nextScreen = RegistrarDashboard(email: email, name: name);
+      case UserModel.roleFacultyRegistrar:
+        nextScreen = RegistrarDashboard(userId: userId, name: name);
+        break;
+      case UserModel.roleTreasury:
+        nextScreen = TreasuryDashboard(userId: userId, name: name);
+        break;
+      case UserModel.rolePusatAdab:
+        nextScreen = PusatAdabDashboard(userId: userId, name: name);
         break;
       case 'pusat_adab':
         nextScreen = PusatAdabDashboard(email: email, name: name);
@@ -109,6 +117,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>();
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -184,18 +194,17 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           const SizedBox(height: 24),
 
-                          // Email Field
+                          // User ID Field
                           TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
+                            controller: _userIdController,
                             style: const TextStyle(color: Colors.white),
                             decoration: InputDecoration(
-                              labelText: 'Email Address',
+                              labelText: 'User ID (e.g. CB23026)',
                               labelStyle: TextStyle(
                                 color: Colors.white.withOpacity(0.6),
                               ),
                               prefixIcon: Icon(
-                                Icons.email_outlined,
+                                Icons.badge_outlined,
                                 color: Colors.white.withOpacity(0.6),
                               ),
                               enabledBorder: OutlineInputBorder(
@@ -226,13 +235,8 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                             validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
-                              }
-                              final emailRegex = RegExp(
-                                  r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+");
-                              if (!emailRegex.hasMatch(value)) {
-                                return 'Please enter a valid email address';
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter your User ID';
                               }
                               return null;
                             },
@@ -305,10 +309,10 @@ class _LoginPageState extends State<LoginPage> {
                           ),
 
                           // Error Message display
-                          if (_errorMessage != null) ...[
+                          if (auth.errorMessage != null) ...[
                             const SizedBox(height: 16),
                             Text(
-                              _errorMessage!,
+                              auth.errorMessage!,
                               style: TextStyle(
                                 color: Colors.red.shade300,
                                 fontSize: 13,
@@ -332,8 +336,8 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 elevation: 0,
                               ),
-                              onPressed: _isLoading ? null : _handleLogin,
-                              child: _isLoading
+                              onPressed: auth.isLoading ? null : _handleLogin,
+                              child: auth.isLoading
                                   ? const SizedBox(
                                       height: 24,
                                       width: 24,
