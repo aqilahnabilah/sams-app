@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
+
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'screens/manage-login/login_page.dart';
 import 'screens/manage-login/dashboards.dart';
 
+import 'provider/co_curriculum/CoCurriculumController.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => CoCurriculumController(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -27,7 +38,7 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
-        fontFamily: 'Roboto', // Premium modern default
+        fontFamily: 'Roboto',
       ),
       home: const AuthWrapper(),
     );
@@ -44,7 +55,6 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder(
       stream: authService.userStream,
       builder: (context, snapshot) {
-        // Handle stream loading state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(
@@ -53,7 +63,6 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // User is logged in
         if (snapshot.hasData && snapshot.data != null) {
           final user = snapshot.data!;
 
@@ -68,18 +77,23 @@ class AuthWrapper extends StatelessWidget {
                 );
               }
 
-              if (roleSnapshot.hasError || !roleSnapshot.hasData || roleSnapshot.data == null) {
-                // If we fail to get user role, sign out and route to Login
+              if (roleSnapshot.hasError ||
+                  !roleSnapshot.hasData ||
+                  roleSnapshot.data == null) {
                 WidgetsBinding.instance.addPostFrameCallback((_) async {
                   await authService.signOut();
+
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Failed to load user role. Signing out.'),
+                        content: Text(
+                          'Failed to load user role. Signing out.',
+                        ),
                       ),
                     );
                   }
                 });
+
                 return const LoginPage();
               }
 
@@ -87,30 +101,46 @@ class AuthWrapper extends StatelessWidget {
               final email = user.email ?? '';
               final name = user.displayName ?? '';
 
-              // Dynamic dashboard redirection based on roles
               switch (role) {
                 case 'student':
-                  return StudentDashboard(email: email, name: name);
+                  return StudentDashboard(
+                    email: email,
+                    name: name,
+                  );
+
                 case 'lecturer':
-                  return LecturerDashboard(email: email, name: name);
+                  return LecturerDashboard(
+                    email: email,
+                    name: name,
+                  );
+
                 case 'faculty_registrar':
-                  return RegistrarDashboard(email: email, name: name);
+                  return RegistrarDashboard(
+                    email: email,
+                    name: name,
+                  );
+
                 default:
                   WidgetsBinding.instance.addPostFrameCallback((_) async {
                     await authService.signOut();
+
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Invalid user role: $role. Signing out.')),
+                        SnackBar(
+                          content: Text(
+                            'Invalid user role: $role. Signing out.',
+                          ),
+                        ),
                       );
                     }
                   });
+
                   return const LoginPage();
               }
             },
           );
         }
 
-        // User is not logged in
         return const LoginPage();
       },
     );
