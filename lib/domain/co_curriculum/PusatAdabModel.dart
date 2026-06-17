@@ -8,7 +8,7 @@ class PusatAdabModel {
   final String staff_email;
   final String department;
   final String role;
-  final String account_status;
+  final String status;
   final DateTime? date_created;
 
   const PusatAdabModel({
@@ -17,11 +17,14 @@ class PusatAdabModel {
     required this.staff_email,
     required this.department,
     required this.role,
-    required this.account_status,
+    required this.status,
     this.date_created,
   });
 
-  // This factory method converts Firestore document data into PusatAdabModel.
+  // OOP METHOD: This getter keeps old code safe if it still reads account_status.
+  String get account_status => status;
+
+  // OOP METHOD: This factory method converts Firestore document data into PusatAdabModel.
   factory PusatAdabModel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
   ) {
@@ -33,14 +36,14 @@ class PusatAdabModel {
       staff_email: data['staff_email'] ?? '',
       department: data['department'] ?? '',
       role: data['role'] ?? '',
-      account_status: data['account_status'] ?? '',
+      status: data['status'] ?? data['account_status'] ?? 'Active',
       date_created: convertNullableTimestampToDateTime(
         data['date_created'],
       ),
     );
   }
 
-  // This method converts PusatAdabModel into Firestore data.
+  // OOP METHOD: This method converts PusatAdabModel into Firestore data.
   Map<String, dynamic> toFirestore() {
     return {
       'staff_id': staff_id,
@@ -48,24 +51,24 @@ class PusatAdabModel {
       'staff_email': staff_email,
       'department': department,
       'role': role,
-      'account_status': account_status,
+      'status': status,
       'date_created': date_created != null
           ? Timestamp.fromDate(date_created!)
           : Timestamp.fromDate(DateTime.now()),
     };
   }
 
-  // This method checks whether Pusat ADAB account is active.
+  // OOP METHOD: This method checks whether Pusat ADAB account is active.
   bool isActive() {
-    return account_status == 'Active';
+    return status == 'Active';
   }
 
-  // This method checks whether the staff role is Pusat ADAB.
+  // OOP METHOD: This method checks whether the staff role is Pusat ADAB.
   bool isPusatAdabStaff() {
     return role == 'Pusat ADAB';
   }
 
-  // This method converts nullable Firestore Timestamp into nullable DateTime.
+  // OOP METHOD: This method converts nullable Firestore Timestamp into nullable DateTime.
   static DateTime? convertNullableTimestampToDateTime(dynamic timestamp) {
     if (timestamp is Timestamp) {
       return timestamp.toDate();

@@ -55,9 +55,15 @@ class _LoginPageState extends State<LoginPage> {
           throw Exception('User account has no associated role.');
         }
 
-        // 3. Route based on role
+        // 3. Route based on role.
+        // OOP METHOD: The AuthService normalizes role values before routing.
+        final storedName = await _authService.getUserName(user.uid);
+        final displayName = storedName.isNotEmpty
+            ? storedName
+            : (user.displayName ?? '');
+
         if (mounted) {
-          _routeToDashboard(role, user.email ?? '', user.displayName ?? '');
+          _routeToDashboard(role, user.email ?? '', displayName);
         }
       }
     } catch (e) {
@@ -84,6 +90,9 @@ class _LoginPageState extends State<LoginPage> {
         break;
       case 'faculty_registrar':
         nextScreen = RegistrarDashboard(email: email, name: name);
+        break;
+      case 'pusat_adab':
+        nextScreen = PusatAdabDashboard(email: email, name: name);
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(

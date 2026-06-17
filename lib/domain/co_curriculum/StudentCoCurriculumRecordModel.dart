@@ -2,11 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StudentCoCurriculumRecordModel {
   // Entity attributes for StudentCoCurriculumRecord.
-  // This model represents the co-curriculum module record completed by a student.
+  // This model represents a module registered or completed by a student.
   final String record_id;
   final String student_id;
   final String module_id;
   final String completion_status;
+  final DateTime? registered_date;
   final DateTime? completion_date;
   final DateTime? date_created;
 
@@ -15,6 +16,7 @@ class StudentCoCurriculumRecordModel {
     required this.student_id,
     required this.module_id,
     required this.completion_status,
+    this.registered_date,
     this.completion_date,
     this.date_created,
   });
@@ -30,6 +32,9 @@ class StudentCoCurriculumRecordModel {
       student_id: data['student_id'] ?? '',
       module_id: data['module_id'] ?? '',
       completion_status: data['completion_status'] ?? '',
+      registered_date: convertNullableTimestampToDateTime(
+        data['registered_date'],
+      ),
       completion_date: convertNullableTimestampToDateTime(
         data['completion_date'],
       ),
@@ -46,6 +51,9 @@ class StudentCoCurriculumRecordModel {
       'student_id': student_id,
       'module_id': module_id,
       'completion_status': completion_status,
+      'registered_date': registered_date != null
+          ? Timestamp.fromDate(registered_date!)
+          : null,
       'completion_date': completion_date != null
           ? Timestamp.fromDate(completion_date!)
           : null,
@@ -53,6 +61,11 @@ class StudentCoCurriculumRecordModel {
           ? Timestamp.fromDate(date_created!)
           : Timestamp.fromDate(DateTime.now()),
     };
+  }
+
+  // This method checks whether the student has registered for the module.
+  bool isRegistered() {
+    return completion_status == 'Registered';
   }
 
   // This method checks whether the student has completed the module.
