@@ -1,11 +1,15 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+
 import '../../services/auth_service.dart';
 import '../subjectRegistration/facultyregistrar/main-course.dart';
 import '../subjectRegistration/student/list_subject.dart';
 import '../subjectRegistration/advisor/subject_approvals.dart';
 import '../../main.dart';
+
+import '../../view/co_curriculum/CoCurriculumPage.dart';
+import '../../view/co_curriculum/AdabClaimListPage.dart';
 
 class StudentDashboard extends StatelessWidget {
   final String email;
@@ -16,6 +20,19 @@ class StudentDashboard extends StatelessWidget {
     required this.email,
     required this.name,
   });
+
+  // This method opens Manage Co-curriculum using current logged-in user data.
+  // No hardcoded student ID is used here.
+  void openCoCurriculumPage(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => CoCurriculumPage(
+          student_id: email,
+          full_name: name.isNotEmpty ? name : email,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +57,7 @@ class StudentDashboard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
+                // Header section for current student.
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -66,12 +83,18 @@ class StudentDashboard extends StatelessWidget {
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.logout, color: Colors.white70),
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Colors.white70,
+                      ),
                       onPressed: () async {
                         await authService.signOut();
+
                         if (context.mounted) {
                           Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (context) => const AuthWrapper()),
+                            MaterialPageRoute(
+                              builder: (context) => const AuthWrapper(),
+                            ),
                             (route) => false,
                           );
                         }
@@ -79,9 +102,10 @@ class StudentDashboard extends StatelessWidget {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 40),
 
-                // Role Badge Card
+                // Role badge card.
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
@@ -128,7 +152,7 @@ class StudentDashboard extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Access your registered subjects, view schedules, and check your grades here.',
+                        'Access your registered subjects, co-curriculum records, student fee and attendance here.',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.6),
                           fontSize: 14,
@@ -137,9 +161,9 @@ class StudentDashboard extends StatelessWidget {
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 32),
 
-                // Options/Actions Header
                 const Text(
                   'Quick Actions',
                   style: TextStyle(
@@ -148,9 +172,9 @@ class StudentDashboard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
                 const SizedBox(height: 16),
 
-                // Grid of Actions
                 Expanded(
                   child: GridView.count(
                     crossAxisCount: 2,
@@ -172,16 +196,22 @@ class StudentDashboard extends StatelessWidget {
                           );
                         },
                       ),
+
                       _buildActionCard(
                         icon: Icons.calendar_month,
                         title: 'Co-curriculum',
                         color: Colors.teal.shade300,
+                        onTap: () {
+                          openCoCurriculumPage(context);
+                        },
                       ),
+
                       _buildActionCard(
                         icon: Icons.assignment,
                         title: 'Student Fee',
                         color: Colors.teal.shade300,
                       ),
+
                       _buildActionCard(
                         icon: Icons.person_outline,
                         title: 'Attendance',
@@ -223,7 +253,11 @@ class StudentDashboard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 36, color: color),
+                Icon(
+                  icon,
+                  size: 36,
+                  color: color,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   title,
@@ -274,7 +308,7 @@ class LecturerDashboard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
+                // Header section for lecturer.
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -300,12 +334,18 @@ class LecturerDashboard extends StatelessWidget {
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.logout, color: Colors.white70),
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Colors.white70,
+                      ),
                       onPressed: () async {
                         await authService.signOut();
+
                         if (context.mounted) {
                           Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (context) => const AuthWrapper()),
+                            MaterialPageRoute(
+                              builder: (context) => const AuthWrapper(),
+                            ),
                             (route) => false,
                           );
                         }
@@ -313,9 +353,10 @@ class LecturerDashboard extends StatelessWidget {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 40),
 
-                // Role Badge Card
+                // Role badge card.
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
@@ -371,9 +412,9 @@ class LecturerDashboard extends StatelessWidget {
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 32),
 
-                // Options/Actions Header
                 const Text(
                   'Quick Actions',
                   style: TextStyle(
@@ -382,9 +423,9 @@ class LecturerDashboard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
                 const SizedBox(height: 16),
 
-                // Grid of Actions
                 Expanded(
                   child: GridView.count(
                     crossAxisCount: 2,
@@ -408,7 +449,8 @@ class LecturerDashboard extends StatelessWidget {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => const SubjectApprovalsPage(),
+                              builder: (context) =>
+                                  const SubjectApprovalsPage(),
                             ),
                           );
                         },
@@ -459,7 +501,11 @@ class LecturerDashboard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 36, color: color),
+                Icon(
+                  icon,
+                  size: 36,
+                  color: color,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   title,
@@ -510,7 +556,7 @@ class RegistrarDashboard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
+                // Header section for faculty registrar.
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -536,12 +582,18 @@ class RegistrarDashboard extends StatelessWidget {
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.logout, color: Colors.white70),
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Colors.white70,
+                      ),
                       onPressed: () async {
                         await authService.signOut();
+
                         if (context.mounted) {
                           Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (context) => const AuthWrapper()),
+                            MaterialPageRoute(
+                              builder: (context) => const AuthWrapper(),
+                            ),
                             (route) => false,
                           );
                         }
@@ -549,9 +601,10 @@ class RegistrarDashboard extends StatelessWidget {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 40),
 
-                // Role Badge Card
+                // Role badge card.
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
@@ -607,9 +660,9 @@ class RegistrarDashboard extends StatelessWidget {
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 32),
 
-                // Options/Actions Header
                 const Text(
                   'Administrative Control',
                   style: TextStyle(
@@ -618,9 +671,9 @@ class RegistrarDashboard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
                 const SizedBox(height: 16),
 
-                // Grid of Actions
                 Expanded(
                   child: GridView.count(
                     crossAxisCount: 2,
@@ -634,7 +687,8 @@ class RegistrarDashboard extends StatelessWidget {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => const ManageCoursesPage(),
+                              builder: (context) =>
+                                  const ManageCoursesPage(),
                             ),
                           );
                         },
@@ -690,7 +744,237 @@ class RegistrarDashboard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 36, color: color),
+                Icon(
+                  icon,
+                  size: 36,
+                  color: color,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PusatAdabDashboard extends StatelessWidget {
+  final String email;
+  final String name;
+
+  const PusatAdabDashboard({
+    super.key,
+    required this.email,
+    required this.name,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final authService = AuthService();
+
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F2027),
+              Color(0xFF203A43),
+              Color(0xFF2C5364),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header section for Pusat ADAB.
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome,',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          name.isNotEmpty ? name : 'Pusat ADAB',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Colors.white70,
+                      ),
+                      onPressed: () async {
+                        await authService.signOut();
+
+                        if (context.mounted) {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (context) => const AuthWrapper(),
+                            ),
+                            (route) => false,
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 40),
+
+                // Role badge card.
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.shade400,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'PUSAT ADAB',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        email,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Review student co-curriculum claims, verify completed modules, approve claims, or reject claims with reason.',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                const Text(
+                  'Quick Actions',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                Expanded(
+                  child: GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    children: [
+                      _buildActionCard(
+                        icon: Icons.verified_user,
+                        title: 'Verify Claims',
+                        color: Colors.teal.shade300,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => AdabClaimListPage(
+                                staff_id: email,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionCard({
+    required IconData icon,
+    required String title,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  icon,
+                  size: 36,
+                  color: color,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   title,
