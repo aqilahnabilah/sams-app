@@ -22,16 +22,34 @@ class _RejectClaimFormState extends State<RejectClaimForm> {
   final TextEditingController rejectionReasonController =
       TextEditingController();
 
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-
   @override
   void dispose() {
+    // Dispose controller to avoid memory leak.
     rejectionReasonController.dispose();
     super.dispose();
   }
 
-  Future<void> onConfirmReject() async {
-    if (formKey.currentState!.validate() == false) {
+  // This method validates the rejection reason entered by Pusat ADAB.
+  bool validateRejectionReason() {
+    final reason = rejectionReasonController.text.trim();
+
+    if (reason.isEmpty) {
+      showMessage('Please enter rejection reason.');
+      return false;
+    }
+
+    if (reason.length < 10) {
+      showMessage('Rejection reason must be at least 10 characters.');
+      return false;
+    }
+
+    return true;
+  }
+
+  // This method submits the rejection decision.
+  // It calls the controller to update claim status as Rejected.
+  Future<void> submitRejectClaim(BuildContext context) async {
+    if (!validateRejectionReason()) {
       return;
     }
 
@@ -59,17 +77,18 @@ class _RejectClaimFormState extends State<RejectClaimForm> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to reject claim. Please try again.'),
-          ),
-        );
+        showMessage('Failed to reject claim. Please try again.');
       }
     }
   }
 
-  void onCancel() {
-    Navigator.pop(context);
+  // This method displays message using SnackBar.
+  void showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+      ),
+    );
   }
 
   @override
@@ -79,7 +98,7 @@ class _RejectClaimFormState extends State<RejectClaimForm> {
         return Scaffold(
           backgroundColor: const Color(0xFFF7F9FC),
           appBar: AppBar(
-            backgroundColor: const Color(0xFF1F7A5C),
+            backgroundColor: const Color(0xFFC62828),
             elevation: 0,
             title: const Text(
               'Reject Claim',
@@ -93,61 +112,82 @@ class _RejectClaimFormState extends State<RejectClaimForm> {
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: Form(
-              key: formKey,
-              child: Column(
-                children: [
-                  _buildWarningCard(),
-                  const SizedBox(height: 18),
-                  _buildReasonForm(),
-                  const SizedBox(height: 26),
-                  _buildRejectButton(controller),
-                  const SizedBox(height: 12),
-                  _buildCancelButton(),
-                ],
-              ),
-            ),
+            child: displayRejectClaimForm(context, controller),
           ),
         );
       },
     );
   }
 
-  Widget _buildWarningCard() {
+  // This method displays the reject claim form.
+  Widget displayRejectClaimForm(
+    BuildContext context,
+    CoCurriculumController controller,
+  ) {
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        displayHeaderCard(),
+        const SizedBox(height: 18),
+        displayReasonInput(),
+        const SizedBox(height: 18),
+        displayRejectNotice(),
+        const SizedBox(height: 28),
+        displaySubmitButton(context, controller),
+        const SizedBox(height: 12),
+        displayCancelButton(context),
+      ],
+    );
+  }
+
+  // This method displays rejection page header.
+  Widget displayHeaderCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEE),
-        borderRadius: BorderRadius.circular(18),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFFEF9A9A),
+          color: const Color(0xFFE5E7EB),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: const Column(
         children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            size: 54,
-            color: Color(0xFFC62828),
+          CircleAvatar(
+            radius: 42,
+            backgroundColor: Color(0xFFFFEBEE),
+            child: Icon(
+              Icons.cancel,
+              size: 52,
+              color: Color(0xFFC62828),
+            ),
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 18),
           Text(
             'Reject Co-curriculum Claim',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 21,
+              fontSize: 23,
               fontWeight: FontWeight.bold,
-              color: Color(0xFFC62828),
+              color: Color(0xFF111827),
             ),
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 10),
           Text(
-            'Please provide a clear rejection reason before rejecting this student claim.',
+            'Please enter a clear rejection reason. The student can view this reason from the claim status page.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF7F1D1D),
-              height: 1.4,
+              fontSize: 14,
+              color: Color(0xFF6B7280),
+              height: 1.5,
             ),
           ),
         ],
@@ -155,7 +195,8 @@ class _RejectClaimFormState extends State<RejectClaimForm> {
     );
   }
 
-  Widget _buildReasonForm() {
+  // This method displays rejection reason input field.
+  Widget displayReasonInput() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -165,50 +206,92 @@ class _RejectClaimFormState extends State<RejectClaimForm> {
         border: Border.all(
           color: const Color(0xFFE5E7EB),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
       ),
-      child: TextFormField(
-        controller: rejectionReasonController,
-        maxLines: 5,
-        decoration: InputDecoration(
-          labelText: 'Rejection Reason',
-          hintText: 'Example: Student has not completed the required modules.',
-          alignLabelWithHint: true,
-          filled: true,
-          fillColor: const Color(0xFFF9FAFB),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: Color(0xFF1F7A5C),
-              width: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Rejection Reason',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF111827),
             ),
           ),
-        ),
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return 'Please provide a reason for rejection';
-          }
-
-          if (value.trim().length < 10) {
-            return 'Rejection reason must be at least 10 characters';
-          }
-
-          return null;
-        },
+          const SizedBox(height: 12),
+          TextField(
+            controller: rejectionReasonController,
+            maxLines: 5,
+            decoration: InputDecoration(
+              hintText: 'Enter rejection reason here...',
+              filled: true,
+              fillColor: const Color(0xFFF9FAFB),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(
+                  color: Color(0xFFE5E7EB),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(
+                  color: Color(0xFFE5E7EB),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(
+                  color: Color(0xFFC62828),
+                  width: 1.5,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildRejectButton(CoCurriculumController controller) {
+  // This method displays rejection notice for Pusat ADAB.
+  Widget displayRejectNotice() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEBEE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFFFCDD2),
+        ),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.warning_amber,
+            color: Color(0xFFC62828),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Once rejected, the claim status will be updated as Rejected and the rejection reason will be stored in the database.',
+              style: TextStyle(
+                color: Color(0xFFC62828),
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // This method displays confirm reject button.
+  Widget displaySubmitButton(
+    BuildContext context,
+    CoCurriculumController controller,
+  ) {
     return SizedBox(
       width: double.infinity,
       height: 52,
@@ -216,7 +299,7 @@ class _RejectClaimFormState extends State<RejectClaimForm> {
         onPressed: controller.isLoading
             ? null
             : () {
-                onConfirmReject();
+                submitRejectClaim(context);
               },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFC62828),
@@ -245,15 +328,19 @@ class _RejectClaimFormState extends State<RejectClaimForm> {
     );
   }
 
-  Widget _buildCancelButton() {
+  // This method displays cancel button.
+  Widget displayCancelButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: OutlinedButton(
-        onPressed: onCancel,
+        onPressed: () {
+          Navigator.pop(context);
+        },
         style: OutlinedButton.styleFrom(
           side: const BorderSide(
-            color: Color(0xFF1F7A5C),
+            color: Color(0xFFC62828),
+            width: 1.4,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -262,7 +349,7 @@ class _RejectClaimFormState extends State<RejectClaimForm> {
         child: const Text(
           'Cancel',
           style: TextStyle(
-            color: Color(0xFF1F7A5C),
+            color: Color(0xFFC62828),
             fontWeight: FontWeight.bold,
           ),
         ),

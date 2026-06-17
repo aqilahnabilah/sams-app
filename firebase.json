@@ -1,1 +1,21 @@
-{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"sams-app-e4656","configurations":{"android":"1:445802360436:android:888320d7e10859e131eb21"}}},"android":{"default":{"projectId":"sams-app-e4656","appId":"1:445802360436:android:888320d7e10859e131eb21","fileOutput":"android/app/google-services.json"}}}}}
+{
+    "flutter": {
+        "platforms": {
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "sams-app-e4656",
+                    "configurations": {
+                        "android": "1:445802360436:android:888320d7e10859e131eb21"
+                    }
+                }
+            },
+            "android": {
+                "default": {
+                    "projectId": "sams-app-e4656",
+                    "appId": "1:445802360436:android:888320d7e10859e131eb21",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            }
+        }
+    }
+}

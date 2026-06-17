@@ -1,25 +1,57 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../domain/co_curriculum/StudentModel.dart';
 import '../../domain/co_curriculum/StudentCoCurriculumRecordModel.dart';
 import '../../domain/co_curriculum/CoCurriculumClaimModel.dart';
 import '../../domain/co_curriculum/CoCurriculumModuleModel.dart';
 
 class CoCurriculumController extends ChangeNotifier {
+  // Firebase Firestore instance used as backend database.
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // Loading and error states for view pages.
   bool isLoading = false;
   String error_message = '';
 
-  List<StudentCoCurriculumRecordModel> records = [];
-  Map<String, CoCurriculumModuleModel> modules = {};
+  // Entity objects used by the Manage Co-curriculum module.
+  StudentModel? student;
   CoCurriculumClaimModel? claim;
 
+  // List of student co-curriculum records retrieved from Firestore.
+  List<StudentCoCurriculumRecordModel> records = [];
+
+  // List of all claims used by Pusat ADAB.
+  List<CoCurriculumClaimModel> claims = [];
+
+  // Module information is stored in a map to easily get module details by module_id.
+  Map<String, CoCurriculumModuleModel> modules = {};
+
+  // Retrieves student information from the Student collection.
+  Future<void> getStudentDetail(String student_id) async {
+    try {
+      final doc = await _firestore.collection('Student').doc(student_id).get();
+
+      if (doc.exists) {
+        student = StudentModel.fromFirestore(doc);
+      }
+
+      notifyListeners();
+    } catch (e) {
+      error_message = 'Failed to retrieve student information.';
+      notifyListeners();
+    }
+  }
+
+  // Retrieves student co-curriculum records based on student_id.
+  // This method supports the student view record requirement.
   Future<void> getStudentRecords(String student_id) async {
     try {
       isLoading = true;
       error_message = '';
       notifyListeners();
+
+      await getStudentDetail(student_id);
 
       final snapshot = await _firestore
           .collection('StudentCoCurriculumRecord')
@@ -41,6 +73,8 @@ class CoCurriculumController extends ChangeNotifier {
     }
   }
 
+  // Retrieves co-curriculum module details from Firestore.
+  // This allows the view page to display module name, category and status.
   Future<void> getCoCurriculumModules() async {
     try {
       final snapshot = await _firestore.collection('CoCurriculumModule').get();
@@ -57,26 +91,36 @@ class CoCurriculumController extends ChangeNotifier {
     }
   }
 
+  // Counts the number of completed modules.
+  // The student must complete at least 4 modules before claiming credit.
   int getCompletedModuleCount() {
     return records.where((record) => record.isCompleted()).length;
   }
 
+  // Checks whether the student is eligible to submit a co-curriculum claim.
   Future<bool> checkEligibility(String student_id) async {
     await getStudentRecords(student_id);
 
     return getCompletedModuleCount() >= 4;
   }
 
+  // Checks whether the student already submitted a claim.
+  // This prevents duplicate claim submission.
   Future<bool> checkDuplicateClaim(String student_id) async {
     final snapshot = await _firestore
         .collection('CoCurriculumClaim')
         .where('student_id', isEqualTo: student_id)
-        .where('claim_status', whereIn: ['Pending Verification', 'Approved'])
+        .where(
+          'claim_status',
+          whereIn: ['Pending Verification', 'Approved'],
+        )
         .get();
 
     return snapshot.docs.isNotEmpty;
   }
 
+  // Creates a new co-curriculum claim with Pending Verification status.
+  // This method returns a message for the boundary/view page to display.
   Future<String> submitClaim(String student_id) async {
     try {
       isLoading = true;
@@ -125,7 +169,9 @@ class CoCurriculumController extends ChangeNotifier {
     }
   }
 
-  Future<void> getClaimStatus(String student_id) async {
+  // Retrieves the latest claim status for a selected student.
+  // This supports the ClaimStatusPage boundary class.
+  Future<CoCurriculumClaimModel?> getClaimStatus(String student_id) async {
     try {
       isLoading = true;
       error_message = '';
@@ -137,39 +183,95 @@ class CoCurriculumController extends ChangeNotifier {
           .get();
 
       if (snapshot.docs.isNotEmpty) {
-        final claims = snapshot.docs
+        final studentClaims = snapshot.docs
             .map((doc) => CoCurriculumClaimModel.fromFirestore(doc))
             .toList();
 
-        claims.sort(
+        studentClaims.sort(
           (a, b) => b.submission_date.compareTo(a.submission_date),
         );
 
-        claim = claims.first;
+        claim = studentClaims.first;
       } else {
         claim = null;
       }
 
       isLoading = false;
       notifyListeners();
+
+      return claim;
     } catch (e) {
       isLoading = false;
       error_message = 'Failed to retrieve claim status.';
       notifyListeners();
+
+      return null;
     }
   }
 
-  Future<List<CoCurriculumClaimModel>> getAllPendingClaims() async {
-    final snapshot = await _firestore
-        .collection('CoCurriculumClaim')
-        .where('claim_status', isEqualTo: 'Pending Verification')
-        .get();
+  // Retrieves all student claims for Pusat ADAB.
+  // This method follows the getAllClaims() method stated in the SDD.
+  Future<void> getAllClaims() async {
+    try {
+      isLoading = true;
+      error_message = '';
+      notifyListeners();
 
-    return snapshot.docs
-        .map((doc) => CoCurriculumClaimModel.fromFirestore(doc))
+      final snapshot = await _firestore.collection('CoCurriculumClaim').get();
+
+      claims = snapshot.docs
+          .map((doc) => CoCurriculumClaimModel.fromFirestore(doc))
+          .toList();
+
+      claims.sort(
+        (a, b) => b.submission_date.compareTo(a.submission_date),
+      );
+
+      isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      isLoading = false;
+      error_message = 'Failed to retrieve claim list.';
+      notifyListeners();
+    }
+  }
+
+  // Retrieves only Pending Verification claims.
+  // This method is used by AdabClaimListPage to show claims that require action.
+  Future<List<CoCurriculumClaimModel>> getAllPendingClaims() async {
+    await getAllClaims();
+
+    return claims
+        .where((claim) => claim.claim_status == 'Pending Verification')
         .toList();
   }
 
+  // Retrieves selected claim detail using claim_id.
+  // This method follows the getClaimDetail(claim_id) method stated in the SDD.
+  Future<CoCurriculumClaimModel?> getClaimDetail(String claim_id) async {
+    try {
+      final doc = await _firestore
+          .collection('CoCurriculumClaim')
+          .doc(claim_id)
+          .get();
+
+      if (doc.exists) {
+        claim = CoCurriculumClaimModel.fromFirestore(doc);
+        notifyListeners();
+        return claim;
+      }
+
+      return null;
+    } catch (e) {
+      error_message = 'Failed to retrieve claim detail.';
+      notifyListeners();
+
+      return null;
+    }
+  }
+
+  // Approves a selected claim and adds 2 co-curriculum credits to the student.
+  // Firestore transaction is used to update claim and student credit together.
   Future<void> approveClaim(
     String claim_id,
     String staff_id,
@@ -207,6 +309,7 @@ class CoCurriculumController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Rejects a selected claim and stores the rejection reason.
   Future<void> rejectClaim(
     String claim_id,
     String staff_id,

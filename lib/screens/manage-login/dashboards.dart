@@ -10,6 +10,8 @@ import '../subjectRegistration/student/list_subject.dart';
 import '../subjectRegistration/advisor/subject_approvals.dart';
 import '../../view/StudentFee/StudentFeePage.dart';
 import '../../view/StudentFee/PaymentManagement.dart';
+import '../../view/co_curriculum/CoCurriculumPage.dart';
+import '../../view/co_curriculum/AdabClaimListPage.dart';
 import 'login_page.dart';
 
 /// Common Dashboard Scaffold to maintain the "Dark Gradient" theme (Subject Registration Theme)
@@ -293,7 +295,16 @@ class StudentDashboard extends StatelessWidget {
           title: 'Co-curriculum',
           subtitle: 'Manage your activity points and certificates.',
           icon: Icons.calendar_month,
-          onTap: () {},
+          onTap: () {
+             Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => CoCurriculumPage(
+                  student_id: userId,
+                  full_name: name.isNotEmpty ? name : userId,
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -452,6 +463,20 @@ class PusatAdabDashboard extends StatelessWidget {
       name: name,
       roleLabel: 'Adab Officer',
       children: [
+        ActionCard(
+          title: 'Verify Claims',
+          subtitle: 'Review and approve student co-curriculum modules.',
+          icon: Icons.verified_user,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => AdabClaimListPage(
+                  staff_id: userId,
+                ),
+              ),
+            );
+          },
+        ),
         ActionCard(
           title: 'Moral Records',
           subtitle: 'Review student conduct and merit points.',

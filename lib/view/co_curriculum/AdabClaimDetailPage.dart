@@ -25,6 +25,25 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
   void initState() {
     super.initState();
 
+    // Fetch selected claim detail and student completed modules when page opens.
+    fetchClaimDetail();
+    fetchCompletedModules();
+  }
+
+  // This method retrieves selected claim detail from Firestore.
+  // It follows the getClaimDetail(claim_id) method stated in the SDD.
+  void fetchClaimDetail() {
+    Future.microtask(() {
+      Provider.of<CoCurriculumController>(
+        context,
+        listen: false,
+      ).getClaimDetail(widget.claim.claim_id);
+    });
+  }
+
+  // This method retrieves student co-curriculum completed module records.
+  // It allows Pusat ADAB to review completed modules before approval.
+  void fetchCompletedModules() {
     Future.microtask(() {
       Provider.of<CoCurriculumController>(
         context,
@@ -33,6 +52,8 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
     });
   }
 
+  // This method approves the selected co-curriculum claim.
+  // It calls the controller to update claim status and add 2 credits to student record.
   Future<void> approveSelectedClaim(BuildContext context) async {
     if (widget.claim.completed_module_count < 4) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -71,14 +92,17 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to approve claim. Please try again.'),
+            content: Text(
+              'Failed to approve claim. Please try again.',
+            ),
           ),
         );
       }
     }
   }
 
-  void goToRejectClaimForm(BuildContext context) {
+  // This method maps Pusat ADAB to the reject claim form.
+  void mapsToRejectClaimForm(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -111,22 +135,15 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
           ),
           body: controller.isLoading
               ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      _buildStatusHeader(),
-                      const SizedBox(height: 16),
-                      _buildClaimDetailCard(),
-                      const SizedBox(height: 16),
-                      _buildCompletedModuleList(controller),
-                      const SizedBox(height: 16),
-                      _buildVerificationNote(),
-                      const SizedBox(height: 24),
-                      _buildApproveButton(context, controller),
-                      const SizedBox(height: 12),
-                      _buildRejectButton(context),
-                    ],
+              : RefreshIndicator(
+                  onRefresh: () async {
+                    await controller.getClaimDetail(widget.claim.claim_id);
+                    await controller.getStudentRecords(widget.claim.student_id);
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    child: displayClaimDetail(context, controller),
                   ),
                 ),
         );
@@ -134,7 +151,30 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
     );
   }
 
-  Widget _buildStatusHeader() {
+  // This method displays all claim details for Pusat ADAB verification.
+  Widget displayClaimDetail(
+    BuildContext context,
+    CoCurriculumController controller,
+  ) {
+    return Column(
+      children: [
+        displayStatusHeader(),
+        const SizedBox(height: 16),
+        displayClaimInformation(),
+        const SizedBox(height: 16),
+        displayCompletedModules(controller),
+        const SizedBox(height: 16),
+        displayVerificationNote(),
+        const SizedBox(height: 24),
+        displayApproveButton(context, controller),
+        const SizedBox(height: 12),
+        displayRejectButton(context),
+      ],
+    );
+  }
+
+  // This method displays pending verification status.
+  Widget displayStatusHeader() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -163,7 +203,7 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
           ),
           SizedBox(height: 6),
           Text(
-            'Please review the student co-curriculum claim before approval or rejection.',
+            'Please review the student claim information and completed modules before approval or rejection.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Color(0xFF92400E),
@@ -175,7 +215,8 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
     );
   }
 
-  Widget _buildClaimDetailCard() {
+  // This method displays selected claim information.
+  Widget displayClaimInformation() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -205,37 +246,37 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
             ),
           ),
           const SizedBox(height: 16),
-          _detailRow(
+          displayInformationRow(
             title: 'Claim ID',
             value: widget.claim.claim_id,
           ),
-          _detailRow(
+          displayInformationRow(
             title: 'Student ID',
             value: widget.claim.student_id,
           ),
-          _detailRow(
+          displayInformationRow(
             title: 'Completed Modules',
             value: '${widget.claim.completed_module_count} / 4',
           ),
-          _detailRow(
+          displayInformationRow(
             title: 'Claim Status',
             value: widget.claim.claim_status,
           ),
-          _detailRow(
+          displayInformationRow(
             title: 'Credit Awarded',
             value: '${widget.claim.credit_awarded} Credits',
           ),
-          _detailRow(
+          displayInformationRow(
             title: 'Submission Date',
-            value:
-                '${widget.claim.submission_date.day}/${widget.claim.submission_date.month}/${widget.claim.submission_date.year}',
+            value: formatDate(widget.claim.submission_date),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCompletedModuleList(CoCurriculumController controller) {
+  // This method displays student completed modules for verification.
+  Widget displayCompletedModules(CoCurriculumController controller) {
     final completedRecords = controller.records
         .where((record) => record.isCompleted())
         .toList();
@@ -280,64 +321,14 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
             Column(
               children: completedRecords.map((record) {
                 final module = controller.modules[record.module_id];
+
                 final moduleName = module?.module_name ?? record.module_id;
                 final moduleCategory =
                     module?.module_category ?? 'Co-curriculum Module';
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF9FAFB),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(0xFFE5E7EB),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Color(0xFFE8F5E9),
-                        child: Icon(
-                          Icons.check,
-                          color: Color(0xFF2E7D32),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              moduleName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF111827),
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              'Category: $moduleCategory',
-                              style: const TextStyle(
-                                color: Color(0xFF6B7280),
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Text(
-                        'Completed',
-                        style: TextStyle(
-                          color: Color(0xFF2E7D32),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+                return displayCompletedModuleCard(
+                  moduleName: moduleName,
+                  moduleCategory: moduleCategory,
                 );
               }).toList(),
             ),
@@ -346,7 +337,70 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
     );
   }
 
-  Widget _buildVerificationNote() {
+  // This method displays each completed module card.
+  Widget displayCompletedModuleCard({
+    required String moduleName,
+    required String moduleCategory,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFE5E7EB),
+        ),
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            radius: 18,
+            backgroundColor: Color(0xFFE8F5E9),
+            child: Icon(
+              Icons.check,
+              color: Color(0xFF2E7D32),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  moduleName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF111827),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Category: $moduleCategory',
+                  style: const TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Text(
+            'Completed',
+            style: TextStyle(
+              color: Color(0xFF2E7D32),
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // This method displays verification rule for Pusat ADAB.
+  Widget displayVerificationNote() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -380,7 +434,8 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
     );
   }
 
-  Widget _detailRow({
+  // This method displays each claim information row.
+  Widget displayInformationRow({
     required String title,
     required String value,
   }) {
@@ -419,7 +474,8 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
     );
   }
 
-  Widget _buildApproveButton(
+  // This method displays approve claim button.
+  Widget displayApproveButton(
     BuildContext context,
     CoCurriculumController controller,
   ) {
@@ -459,13 +515,14 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
     );
   }
 
-  Widget _buildRejectButton(BuildContext context) {
+  // This method displays reject claim button.
+  Widget displayRejectButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: OutlinedButton(
         onPressed: () {
-          goToRejectClaimForm(context);
+          mapsToRejectClaimForm(context);
         },
         style: OutlinedButton.styleFrom(
           side: const BorderSide(
@@ -484,5 +541,10 @@ class _AdabClaimDetailPageState extends State<AdabClaimDetailPage> {
         ),
       ),
     );
+  }
+
+  // This method formats DateTime into readable date format.
+  String formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 }
