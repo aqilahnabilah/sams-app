@@ -6,7 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../services/course_service.dart';
+import '../../../provider/subjectregistration/SubjectRegistrationController.dart';
 
 /// Model to hold the state of a single lab session input.
 class LabInput {
@@ -93,7 +93,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
   // List of dynamic lecture session inputs (each containing its nested labs)
   final List<LectureInput> _lectures = [];
 
-  final CourseService _courseService = CourseService();
+  final SubjectRegistrationController _courseService = SubjectRegistrationController();
   bool _isLoading = false;
   String? _errorMessage;
 

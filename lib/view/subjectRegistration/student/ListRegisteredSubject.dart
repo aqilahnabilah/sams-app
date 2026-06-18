@@ -4,7 +4,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../../../services/course_service.dart';
+import '../../../provider/subjectregistration/SubjectRegistrationController.dart';
 import '../../../domain/subjectregistration/SubjectRegistrationModel.dart';
 
 /// A screen that lists all subject registrations for a specific student.
@@ -24,7 +24,7 @@ class ListRegisteredSubjectsPage extends StatefulWidget {
 
 /// State for [ListRegisteredSubjectsPage] handles retrieving list of registrations and dropping subjects.
 class _ListRegisteredSubjectsPageState extends State<ListRegisteredSubjectsPage> {
-  final CourseService _courseService = CourseService();
+  final SubjectRegistrationController _courseService = SubjectRegistrationController();
   final Map<String, bool> _processingItems = {};
 
   String _formatDateString(String dateStr) {

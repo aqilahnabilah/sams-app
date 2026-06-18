@@ -6,7 +6,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../../../services/course_service.dart';
+import '../../../provider/subjectregistration/SubjectRegistrationController.dart';
 import 'AddSubject.dart';
 import 'EditSubject.dart';
 
@@ -19,7 +19,7 @@ class ManageCoursesPage extends StatefulWidget {
 }
 
 class _ManageCoursesPageState extends State<ManageCoursesPage> {
-  final CourseService _courseService = CourseService();
+  final SubjectRegistrationController _courseService = SubjectRegistrationController();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   final Set<String> _expandedSubjectIds = {};

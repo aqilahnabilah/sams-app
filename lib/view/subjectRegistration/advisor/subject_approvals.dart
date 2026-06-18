@@ -4,7 +4,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../../../services/course_service.dart';
+import '../../../provider/subjectregistration/SubjectRegistrationController.dart';
 import '../../../domain/subjectregistration/SubjectRegistrationModel.dart';
 import '../../../theme/sams_theme.dart';
 
@@ -18,7 +18,7 @@ class SubjectApprovalsPage extends StatefulWidget {
 
 /// State for [SubjectApprovalsPage] managing loading states and actions.
 class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
-  final CourseService _courseService = CourseService();
+  final SubjectRegistrationController _registrationController = SubjectRegistrationController();
   final Map<String, bool> _processingItems = {};
 
   Future<void> _handleApprove(
@@ -34,7 +34,7 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
     });
 
     try {
-      await _courseService.approveRegistration(
+      await _registrationController.approveRegistration(
         registrationId: regId,
         subjectId: subjectId,
         sectionName: sectionName,
@@ -70,7 +70,7 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
     });
 
     try {
-      await _courseService.rejectRegistration(regId);
+      await _registrationController.rejectRegistration(regId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -135,7 +135,7 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                 // Pending requests builder
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
-                    stream: _courseService.getPendingRegistrationsStream(),
+                    stream: _registrationController.getPendingRegistrationsStream(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(
