@@ -4,7 +4,7 @@ import 'package:sams/domain/Authentication/UserModel.dart';
 import 'package:sams/domain/StudentFee/Payment/PaymentModel.dart';
 import 'package:sams/provider/Authentication/AuthController.dart';
 import 'package:sams/provider/StudentFee/PaymentController.dart';
-import 'package:sams/screens/manage-login/auth_route_guard.dart';
+import 'package:sams/view/manage-login/auth_route_guard.dart';
 import 'package:sams/view/StudentFee/PaymentDetail.dart';
 import 'package:sams/theme/sams_theme.dart';
 
