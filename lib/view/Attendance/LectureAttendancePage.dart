@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../provider/Authentication/AuthController.dart';
 import '../../domain/Attendance/ClassSessionModel.dart';
-import '../../provider/Attendance/AttendanceController.dart';
 import '../../provider/Attendance/ClassCodeController.dart';
 import '../../theme/sams_theme.dart';
 import '../../utils/constants.dart';
@@ -22,8 +21,6 @@ class LectureAttendancePage extends StatefulWidget {
 class _LectureAttendancePageState extends State<LectureAttendancePage> {
   ClassSessionModel? _selectedSession;
   bool _loading = true;
-  List<ClassSessionModel> _historySessions = [];
-  final Map<String, int> _sessionCounts = {};
 
   @override
   void initState() {
@@ -34,6 +31,8 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
   /// Initializes the page by checking for an active session or creating a new unique one.
   Future<void> _initPage() async {
     final auth = context.read<AuthController>();
+    final codeController = context.read<ClassCodeController>();
+
     final user = auth.currentUser;
     if (user == null) return;
     final staffId = user.userId;
@@ -59,7 +58,6 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
         debugPrint('SAMS_DEBUG: Resuming existing open session: ${_selectedSession!.classSessionId}');
       } else {
         // No open session found. Prepare a NEW unique session ID for when they toggle to Open.
-        // We use a timestamp to ensure history entries are never overwritten.
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         _selectedSession = ClassSessionModel(
           classSessionId: 'SESS_${subjectCode}_$timestamp',
@@ -75,11 +73,8 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
         debugPrint('SAMS_DEBUG: Prepared new unique session ID: ${_selectedSession!.classSessionId}');
       }
 
-      final controller = context.read<ClassCodeController>();
-      await controller.fetchActiveCode(_selectedSession!.classSessionId);
+      await codeController.fetchActiveCode(_selectedSession!.classSessionId);
       
-      await _loadHistory();
-
       if (mounted) {
         setState(() => _loading = false);
       }
@@ -89,37 +84,15 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
     }
   }
 
-  /// Loads the history for this specific subject to show at the bottom of the page.
-  Future<void> _loadHistory() async {
-    final auth = context.read<AuthController>();
-    final user = auth.currentUser;
-    if (user == null || _selectedSession == null) return;
-
-    final att = context.read<AttendanceController>();
-    final sessions = await att.fetchSubjectSessions(user.userId, _selectedSession!.subjectCode);
-    
-    // Sort newest sessions first
-    _historySessions = sessions.reversed.toList();
-    
-    for (var s in _historySessions) {
-      final count = await att.getSessionAttendanceCount(s.classSessionId);
-      _sessionCounts[s.classSessionId] = count;
-    }
-
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
+      return Scaffold(
         body: Container(
           width: double.infinity,
           height: double.infinity,
-          decoration: BoxDecoration(gradient: LinearGradient(colors: SamsColors.portalGradient)),
-          child: Center(child: CircularProgressIndicator(color: Colors.tealAccent))
+          decoration: const BoxDecoration(gradient: LinearGradient(colors: SamsColors.portalGradient)),
+          child: const Center(child: CircularProgressIndicator(color: Colors.tealAccent))
         )
       );
     }
@@ -168,9 +141,9 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.08),
+                          color: Colors.white.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withOpacity(0.15)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                         ),
                         child: Column(
                           children: [
@@ -179,7 +152,7 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: Colors.tealAccent.withOpacity(0.1),
+                                    color: Colors.tealAccent.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: const Icon(Icons.book_outlined, color: Colors.tealAccent),
@@ -191,7 +164,7 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
                                     children: [
                                       Text(
                                         'Subject'.toUpperCase(),
-                                        style: TextStyle(color: Colors.tealAccent.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                                        style: TextStyle(color: Colors.tealAccent.withValues(alpha: 0.7), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -222,7 +195,6 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
                         final codeProv = context.read<ClassCodeController>();
                         if (mounted) {
                           await codeProv.toggleSessionStatus(session);
-                          await _loadHistory();
                         }
                       }),
                       
@@ -232,16 +204,16 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
                         // Attendance Code Section
                         Text(
                           'Attendance Code'.toUpperCase(),
-                          style: TextStyle(color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 12),
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 12),
                         ),
                         const SizedBox(height: 16),
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 40),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
+                            color: Colors.white.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(32),
-                            border: Border.all(color: Colors.white.withOpacity(0.1), width: 1.5),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1.5),
                           ),
                           child: Center(
                             child: _buildCodeDisplay(activeCode?.classCode),
@@ -282,11 +254,11 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
                                   icon: const Icon(Icons.people_outline),
                                   label: const Text('Live Records', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white.withOpacity(0.08),
+                                    backgroundColor: Colors.white.withValues(alpha: 0.08),
                                     foregroundColor: Colors.tealAccent,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
-                                      side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                                      side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                                     ),
                                     elevation: 0,
                                   ),
@@ -301,7 +273,7 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
                                   onPressed: activeCode == null ? null : () => context.read<ClassCodeController>().regenerateClassCode(),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: Colors.white70,
-                                    side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                                    side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                   ),
                                   child: const Text('Regenerate', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
@@ -316,70 +288,12 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
                         }),
                       ] else ...[
                         const SizedBox(height: 40),
-                        Icon(Icons.lock_outline, size: 64, color: Colors.white.withOpacity(0.1)),
+                        Icon(Icons.lock_outline, size: 64, color: Colors.white.withValues(alpha: 0.1)),
                         const SizedBox(height: 16),
                         Text(
                           'Session is currently closed.\nOpen the session to start recording attendance.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white.withOpacity(0.4), height: 1.5),
-                        ),
-                      ],
-                      
-                      const SizedBox(height: 40),
-                      
-                      // Attendance History Section for this subject
-                      if (_historySessions.isNotEmpty) ...[
-                        Row(
-                          children: [
-                            const Icon(Icons.history, color: Colors.white70, size: 20),
-                            const SizedBox(width: 8),
-                            const Text('Subject History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _historySessions.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final hist = _historySessions[index];
-                            final count = _sessionCounts[hist.classSessionId] ?? 0;
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.04),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.white.withOpacity(0.08)),
-                              ),
-                              child: ListTile(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                onTap: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    '/lecturer/attendance-records',
-                                    arguments: hist,
-                                  );
-                                },
-                                title: Text(hist.classDate, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                                subtitle: Text('${hist.startTime} - ${hist.endTime}', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.5))),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text('$count', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
-                                        const Text('Present', style: TextStyle(fontSize: 10, color: Colors.white38)),
-                                      ],
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(Icons.chevron_right, color: Colors.white.withOpacity(0.2)),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.4), height: 1.5),
                         ),
                       ],
                       const SizedBox(height: 40),
@@ -401,17 +315,17 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: Colors.white.withOpacity(0.4), size: 18),
+            child: Icon(icon, color: Colors.white.withValues(alpha: 0.4), size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.4))),
+                Text(label, style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.4))),
                 Text(
                   value,
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
@@ -429,9 +343,9 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Row(
         children: [
@@ -454,7 +368,7 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
             scale: 0.8,
             child: CupertinoSwitch(
               value: value,
-              activeTrackColor: Colors.greenAccent.withOpacity(0.3),
+              activeTrackColor: Colors.greenAccent.withValues(alpha: 0.3),
               onChanged: onChanged,
             ),
           ),
@@ -467,9 +381,9 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+        color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
@@ -477,7 +391,7 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white.withOpacity(0.4))),
+                Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white.withValues(alpha: 0.4))),
                 const SizedBox(height: 2),
                 Text(value ? 'YES' : 'NO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: value ? Colors.tealAccent : Colors.redAccent)),
               ],
@@ -487,7 +401,7 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
             scale: 0.7,
             child: CupertinoSwitch(
               value: value,
-              activeTrackColor: Colors.tealAccent.withOpacity(0.3),
+              activeTrackColor: Colors.tealAccent.withValues(alpha: 0.3),
               onChanged: onChanged,
             ),
           ),
@@ -498,7 +412,7 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
 
   Widget _buildCodeDisplay(String? code) {
     if (code == null || code.isEmpty) {
-      return Text('———', style: TextStyle(fontSize: 64, fontWeight: FontWeight.w900, color: Colors.white.withOpacity(0.1), letterSpacing: 4));
+      return Text('———', style: TextStyle(fontSize: 64, fontWeight: FontWeight.w900, color: Colors.white.withValues(alpha: 0.1), letterSpacing: 4));
     }
     final top = code.length >= 3 ? code.substring(0, 3) : code;
     final bottom = code.length > 3 ? code.substring(3) : '';

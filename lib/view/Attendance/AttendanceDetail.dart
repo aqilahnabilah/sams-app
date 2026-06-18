@@ -56,9 +56,9 @@ class AttendanceDetailPage extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.white.withOpacity(0.15)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                       ),
                       child: Column(
                         children: [
@@ -158,9 +158,9 @@ class _DetailTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+        color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,7 +168,7 @@ class _DetailTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.tealAccent.withOpacity(0.1),
+              color: Colors.tealAccent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: Colors.tealAccent, size: 20),
@@ -180,7 +180,7 @@ class _DetailTile extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.5)),
+                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5)),
                 ),
                 const SizedBox(height: 4),
                 Text(
