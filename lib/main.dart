@@ -7,6 +7,13 @@ import 'firebase_options.dart';
 import 'screens/manage-login/login_page.dart';
 import 'screens/manage-login/dashboards.dart';
 
+<<<<<<< HEAD
+=======
+import 'provider/Authentication/AuthController.dart';
+import 'provider/Authentication/LoginController.dart';
+import 'provider/Authentication/RegisterController.dart';
+import 'provider/StudentFee/PaymentController.dart';
+>>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
 import 'provider/co_curriculum/CoCurriculumController.dart';
 import 'provider/Attendance/AttendanceController.dart';
 import 'provider/Attendance/ClassCodeController.dart';
@@ -60,10 +67,19 @@ void main() async {
             locationVerification: context.read<LocationVerification>(),
             classCodeController: context.read<ClassCodeController>(),
           ),
-          update: (context, location, code, previous) => AttendanceController(
-            locationVerification: location,
-            classCodeController: code,
-          ),
+          update: (context, location, code, previous) {
+            if (previous == null) {
+              return AttendanceController(
+                locationVerification: location,
+                classCodeController: code,
+              );
+            }
+            previous.update(
+              locationVerification: location,
+              classCodeController: code,
+            );
+            return previous;
+          },
         ),
       ],
       child: const MyApp(),
@@ -82,12 +98,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.teal,
-          brightness: Brightness.light,
+          brightness: Brightness.dark,
         ),
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
       routes: {
+<<<<<<< HEAD
         '/student/check-in': (context) =>
             const AuthWrapper(target: 'check-in'),
 
@@ -105,6 +122,15 @@ class MyApp extends StatelessWidget {
 
         '/lecturer/generate-code': (context) =>
             const AuthWrapper(target: 'generate-code'),
+=======
+        '/student/check-in': (context) => const AuthWrapper(target: 'check-in'),
+        '/student/attendance-history': (context) => const AuthWrapper(target: 'attendance-history'),
+        '/lecturer/attendance-history': (context) => const AuthWrapper(target: 'attendance-history'),
+        '/student/attendance-status': (context) => const AuthWrapper(target: 'attendance-status'),
+        '/lecturer/sessions': (context) => const AuthWrapper(target: 'lecturer-sessions'),
+        '/lecturer/attendance-records': (context) => const AuthWrapper(target: 'attendance-records'),
+        '/lecturer/generate-code': (context) => const AuthWrapper(target: 'generate-code'),
+>>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
       },
       home: const AuthWrapper(),
     );
@@ -135,6 +161,7 @@ class AuthWrapper extends StatelessWidget {
       return const LoginPage();
     }
 
+<<<<<<< HEAD
     final user = auth.currentUser!;
 
     if (target != null) {
@@ -156,6 +183,38 @@ class AuthWrapper extends StatelessWidget {
 
         case 'generate-code':
           return const GenerateClassCodePage();
+=======
+      switch (user.role) {
+        case UserModel.roleStudent:
+          return StudentDashboard(
+            userId: user.userId,
+            name: user.username,
+          );
+
+        case UserModel.roleLecturer:
+          return LecturerDashboard(
+            userId: user.userId,
+            name: user.username,
+          );
+
+        case UserModel.roleFacultyRegistrar:
+          return RegistrarDashboard(
+            userId: user.userId,
+            name: user.username,
+          );
+          
+        case UserModel.roleTreasury:
+          return TreasuryDashboard(
+            userId: user.userId,
+            name: user.username,
+          );
+          
+        case UserModel.rolePusatAdab:
+          return PusatAdabDashboard(
+            userId: user.userId,
+            name: user.username,
+          );
+>>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
 
         default:
           return const LoginPage();

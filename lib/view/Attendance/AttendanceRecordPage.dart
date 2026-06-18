@@ -6,10 +6,9 @@ import 'package:provider/provider.dart';
 import '../../domain/Attendance/ClassSessionModel.dart';
 import '../../provider/Attendance/AttendanceController.dart';
 import '../../provider/Attendance/ClassCodeController.dart';
-import '../../provider/Attendance/LocationVerificationController.dart';
 import '../../theme/sams_theme.dart';
 
-/// SAMS-PACK-312 — Real-time live check-in list with Dark Gradient Theme.
+/// SAMS-PACK-312 — Real-time live check-in list with integrated controls and Dark Gradient Theme.
 class AttendanceRecordPage extends StatefulWidget {
   const AttendanceRecordPage({super.key});
 
@@ -120,17 +119,8 @@ class _AttendanceRecordPageState extends State<AttendanceRecordPage> {
                       value: isOpen,
                       activeColor: Colors.greenAccent,
                       onChanged: (_) async {
-                        final loc = context.read<LocationVerification>();
-                        double? lat, lng;
-                        if (!isOpen) { 
-                          await loc.checkGPSPermission();
-                          await loc.verifyCurrentLocation();
-                          lat = loc.currentLatitude;
-                          lng = loc.currentLongitude;
-                        }
-                        if (mounted) {
-                          await codeController.toggleSessionStatus(session.classSessionId, lat: lat, lng: lng);
-                        }
+                        // Logic simplified: No longer requesting lecturer location when opening session.
+                        await codeController.toggleSessionStatus(session);
                       },
                     ),
                   ],

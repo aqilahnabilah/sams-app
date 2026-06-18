@@ -7,11 +7,11 @@ import 'package:provider/provider.dart';
 import '../../domain/Attendance/ClassSessionModel.dart';
 import '../../provider/Attendance/ClassCodeController.dart';
 import '../../provider/Attendance/AttendanceController.dart';
-import '../../provider/Attendance/LocationVerificationController.dart';
 import '../../provider/Authentication/AuthController.dart';
 import '../../theme/sams_theme.dart';
 
-/// SAMS-PACK-311 — Redesigned "Manage Attendance" UI with Dark Gradient Theme.
+/// SAMS-PACK-311 — Redesigned "Attendance" UI with Dark Gradient Theme.
+/// If a session is Closed, the "Live" elements are cleared.
 class GenerateClassCodePage extends StatefulWidget {
   const GenerateClassCodePage({super.key});
 
@@ -20,9 +20,6 @@ class GenerateClassCodePage extends StatefulWidget {
 }
 
 class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
-  List<ClassSessionModel> _historySessions = [];
-  final Map<String, int> _sessionCounts = {};
-
   ClassSessionModel? get _session {
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is ClassSessionModel) return args;
@@ -40,35 +37,12 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
     if (session == null) return;
 
     final controller = context.read<ClassCodeController>();
+    final attController = context.read<AttendanceController>();
+
     await controller.fetchActiveCode(session.classSessionId);
 
     if (mounted) {
-      context
-          .read<AttendanceController>()
-          .listenToSessionAttendance(session.classSessionId);
-      
-      await _loadHistory();
-    }
-  }
-
-  Future<void> _loadHistory() async {
-    final auth = context.read<AuthController>();
-    final user = auth.currentUser;
-    if (user == null || _session == null) return;
-
-    final att = context.read<AttendanceController>();
-    final sessions = await att.fetchSubjectSessions(user.userId, _session!.subjectCode);
-    
-    final history = sessions.where((s) => s.sessionStatus == 'Closed').toList();
-    
-    for (var s in history) {
-      _sessionCounts[s.classSessionId] = await att.getSessionAttendanceCount(s.classSessionId);
-    }
-
-    if (mounted) {
-      setState(() {
-        _historySessions = history;
-      });
+      attController.listenToSessionAttendance(session.classSessionId);
     }
   }
 
@@ -112,7 +86,7 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
                     ),
                     const Expanded(
                       child: Text(
-                        'Manage Attendance',
+                        'Attendance',
                         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                       ),
                     ),
@@ -128,9 +102,9 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.08),
+                          color: Colors.white.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withOpacity(0.15)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                         ),
                         child: Column(
                           children: [
@@ -139,7 +113,7 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: Colors.tealAccent.withOpacity(0.1),
+                                    color: Colors.tealAccent.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: const Icon(Icons.book_outlined, color: Colors.tealAccent),
@@ -151,7 +125,7 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
                                     children: [
                                       Text(
                                         'Subject'.toUpperCase(),
-                                        style: TextStyle(color: Colors.tealAccent.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                                        style: TextStyle(color: Colors.tealAccent.withValues(alpha: 0.7), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -177,173 +151,103 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
                       
                       const SizedBox(height: 32),
                       
-                      Text(
-                        'Attendance Code'.toUpperCase(),
-                        style: TextStyle(color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 12),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Code display area
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 40),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(32),
-                          border: Border.all(color: Colors.white.withOpacity(0.1), width: 1.5),
-                        ),
-                        child: Center(
-                          child: _buildCodeDisplay(activeCode?.classCode),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 32),
-                      
-                      // Actions
-                      SizedBox(
-                        width: double.infinity,
-                        height: 64,
-                        child: ElevatedButton.icon(
-                          onPressed: () => context.read<ClassCodeController>().generateClassCode(session.classSessionId, session.staffId),
-                          icon: const Icon(Icons.flash_on),
-                          label: const Text('Generate Code', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal.shade400,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            elevation: 0,
-                          ),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 56,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    '/lecturer/attendance-records',
-                                    arguments: session,
-                                  );
-                                },
-                                icon: const Icon(Icons.people_outline),
-                                label: const Text('Live Records', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white.withOpacity(0.08),
-                                  foregroundColor: Colors.tealAccent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    side: BorderSide(color: Colors.white.withOpacity(0.1)),
-                                  ),
-                                  elevation: 0,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: SizedBox(
-                              height: 56,
-                              child: OutlinedButton(
-                                onPressed: activeCode == null ? null : () => context.read<ClassCodeController>().regenerateClassCode(),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white70,
-                                  side: BorderSide(color: Colors.white.withOpacity(0.2)),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                ),
-                                child: const Text('Regenerate', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 32),
-                      
-                      // Toggles
-                      _toggleRow('Require Location', codeController.requiresLocation, (val) {
-                        context.read<ClassCodeController>().toggleLocationRequirement(session.classSessionId);
-                      }),
-                      
-                      const SizedBox(height: 12),
-                      
                       _toggleRow('Session Status (Open/Closed)', isOpen, (val) async {
-                        final loc = context.read<LocationVerification>();
                         final codeProv = context.read<ClassCodeController>();
-                        double? lat, lng;
-                        if (!isOpen) {
-                          await loc.checkGPSPermission();
-                          await loc.verifyCurrentLocation();
-                          lat = loc.currentLatitude;
-                          lng = loc.currentLongitude;
-                        }
-                        if (mounted) {
-                          await codeProv.toggleSessionStatus(session.classSessionId, lat: lat, lng: lng);
-                          await _loadHistory();
-                        }
+                        await codeProv.toggleSessionStatus(session);
                       }),
-                      
-                      const SizedBox(height: 40),
-                      
-                      // History section
-                      if (_historySessions.isNotEmpty) ...[
+
+                      if (isOpen) ...[
+                        const SizedBox(height: 32),
+                        Text(
+                          'Attendance Code'.toUpperCase(),
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 12),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1.5),
+                          ),
+                          child: Center(
+                            child: _buildCodeDisplay(activeCode?.classCode),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 64,
+                          child: ElevatedButton.icon(
+                            onPressed: () => context.read<ClassCodeController>().generateClassCode(session.classSessionId, session.staffId),
+                            icon: const Icon(Icons.flash_on),
+                            label: const Text('Generate Code', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal.shade400,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                         Row(
                           children: [
-                            const Icon(Icons.history, color: Colors.white70, size: 20),
-                            const SizedBox(width: 8),
-                            const Text('Attendance History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                            Expanded(
+                              child: SizedBox(
+                                height: 56,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/lecturer/attendance-records',
+                                      arguments: session,
+                                    );
+                                  },
+                                  icon: const Icon(Icons.people_outline),
+                                  label: const Text('Live Records', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                                    foregroundColor: Colors.tealAccent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                      side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: SizedBox(
+                                height: 56,
+                                child: OutlinedButton(
+                                  onPressed: activeCode == null ? null : () => context.read<ClassCodeController>().regenerateClassCode(),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.white70,
+                                    side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  ),
+                                  child: const Text('Regenerate', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _historySessions.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final hist = _historySessions[index];
-                            final count = _sessionCounts[hist.classSessionId] ?? 0;
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.04),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.white.withOpacity(0.08)),
-                              ),
-                              child: ListTile(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                onTap: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    '/lecturer/attendance-records',
-                                    arguments: hist,
-                                  );
-                                },
-                                title: Text(hist.classDate, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                                subtitle: Text('${hist.startTime} - ${hist.endTime}', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.5))),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text('$count', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
-                                        const Text('Present', style: TextStyle(fontSize: 10, color: Colors.white38)),
-                                      ],
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(Icons.chevron_right, color: Colors.white.withOpacity(0.2)),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
+                        _toggleRow('Require Location', codeController.requiresLocation, (val) {
+                          context.read<ClassCodeController>().toggleLocationRequirement(session.classSessionId);
+                        }),
+                      ] else ...[
+                        const SizedBox(height: 40),
+                        Icon(Icons.lock_outline, size: 64, color: Colors.white.withValues(alpha: 0.1)),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Session is currently closed.\nOpen the session to start recording attendance.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.4), height: 1.5),
                         ),
                       ],
                       const SizedBox(height: 40),
@@ -362,9 +266,9 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Row(
         children: [
@@ -375,7 +279,7 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
             ),
           ),
           Text(
-            value ? 'ON' : 'OFF',
+            value ? 'OPEN' : 'CLOSED',
             style: TextStyle(
               color: value ? Colors.greenAccent : Colors.redAccent,
               fontWeight: FontWeight.bold,
@@ -387,7 +291,7 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
             scale: 0.8,
             child: CupertinoSwitch(
               value: value,
-              activeTrackColor: Colors.tealAccent.withOpacity(0.3),
+              activeTrackColor: Colors.greenAccent.withValues(alpha: 0.3),
               onChanged: onChanged,
             ),
           ),
@@ -403,17 +307,17 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: Colors.white.withOpacity(0.4), size: 18),
+            child: Icon(icon, color: Colors.white.withValues(alpha: 0.4), size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.4))),
+                Text(label, style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.4))),
                 Text(
                   value,
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),

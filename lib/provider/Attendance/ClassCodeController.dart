@@ -31,6 +31,7 @@ class ClassCodeController extends ChangeNotifier {
   String get sessionStatus => _sessionStatus;
   bool get requiresLocation => _requiresLocation;
 
+  /// Generates a new unique class code for the specific session.
   Future<ClassCodeModel?> generateClassCode(
     String classSessionId,
     String staffId,
@@ -102,6 +103,7 @@ class ClassCodeController extends ChangeNotifier {
     }
   }
 
+  /// Fetches the currently active code for a class session.
   Future<ClassCodeModel?> fetchActiveCode(String classSessionId) async {
     _currentClassSessionId = classSessionId;
     _isLoading = true;
@@ -127,8 +129,6 @@ class ClassCodeController extends ChangeNotifier {
 
       if (snapshot.docs.isNotEmpty) {
         final model = ClassCodeModel.fromMap(snapshot.docs.first.data());
-        // Show the code as active as long as the database 'is_active' flag is true,
-        // and let the session status (Open/Closed) handle the logic.
         _activeCode = model;
         _currentStaffId = model.staffId;
         return model;
@@ -144,6 +144,7 @@ class ClassCodeController extends ChangeNotifier {
     }
   }
 
+  /// Regenerates the code for the current session context.
   Future<ClassCodeModel?> regenerateClassCode() async {
     if (_currentClassSessionId == null || _currentStaffId == null) {
       _errorMessage = 'No active session context for regeneration';
@@ -153,6 +154,7 @@ class ClassCodeController extends ChangeNotifier {
     return generateClassCode(_currentClassSessionId!, _currentStaffId!);
   }
 
+  /// Deactivates all existing codes for a session in the database.
   Future<void> deactivatePreviousCode(String classSessionId) async {
     final snapshot = await _db
         .collection(FirestoreCollections.attendanceCodes)
@@ -167,6 +169,7 @@ class ClassCodeController extends ChangeNotifier {
     await batch.commit();
   }
 
+  /// Validates a code input from a student.
   Future<ClassCodeModel?> validateClassCode(String inputCode) async {
     final normalized = inputCode.trim().toUpperCase();
     if (normalized.isEmpty) return null;
@@ -182,9 +185,7 @@ class ClassCodeController extends ChangeNotifier {
 
     final model = ClassCodeModel.fromMap(snapshot.docs.first.data());
     
-    // We allow the code as long as the session is OPEN, 
-    // even if the generated code's 3-hour window technically passed.
-    // This ensures students aren't blocked if the lecturer stays logged out but left the session open.
+    // Validate that the linked session is still open.
     final sessionDoc = await _db
         .collection(FirestoreCollections.classSessions)
         .doc(model.classSessionId)
@@ -197,6 +198,7 @@ class ClassCodeController extends ChangeNotifier {
     return model;
   }
 
+  /// Generates a human-readable random code string.
   String _generateRandomCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     String pick(int length) {
@@ -209,33 +211,47 @@ class ClassCodeController extends ChangeNotifier {
     return '${pick(3)}-${pick(2)}';
   }
 
+  /// Local cleanup of the active code state.
   void clearActiveCode() {
     _activeCode = null;
     notifyListeners();
   }
 
-  Future<void> toggleSessionStatus(String classSessionId, {double? lat, double? lng}) async {
+  /// Toggles the operational state (Open/Closed) of a class session.
+  /// Saves full metadata to ensure it appears in Lecturer History.
+  Future<void> toggleSessionStatus(ClassSessionModel session) async {
     try {
       final newStatus = _sessionStatus == 'Open' ? 'Closed' : 'Open';
       
-      final Map<String, dynamic> data = {'session_status': newStatus};
-      if (newStatus == 'Open' && lat != null && lng != null) {
-        data['latitude'] = lat;
-        data['longitude'] = lng;
-      }
+      final updatedModel = ClassSessionModel(
+        classSessionId: session.classSessionId,
+        staffId: session.staffId,
+        subjectCode: session.subjectCode,
+        subjectName: session.subjectName,
+        classSection: session.classSection,
+        classDate: session.classDate,
+        startTime: session.startTime,
+        endTime: session.endTime,
+        sessionStatus: newStatus,
+        requiresLocation: _requiresLocation,
+      );
 
       await _db
           .collection(FirestoreCollections.classSessions)
-          .doc(classSessionId)
-          .set(data, SetOptions(merge: true));
+          .doc(session.classSessionId)
+          .set(updatedModel.toMap(), SetOptions(merge: true));
 
       _sessionStatus = newStatus;
+      if (_sessionStatus == 'Closed') {
+        _activeCode = null;
+      }
       notifyListeners();
     } catch (e) {
       debugPrint('toggleSessionStatus error: $e');
     }
   }
 
+  /// Toggles the location verification enforcement flag for a session.
   Future<void> toggleLocationRequirement(String classSessionId) async {
     try {
       final newValue = !_requiresLocation;

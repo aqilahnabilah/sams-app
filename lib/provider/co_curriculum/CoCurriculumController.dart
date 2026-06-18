@@ -7,29 +7,33 @@ import '../../domain/co_curriculum/CoCurriculumClaimModel.dart';
 import '../../domain/co_curriculum/CoCurriculumModuleModel.dart';
 
 class CoCurriculumController extends ChangeNotifier {
+  // Firebase Firestore instance used as backend database.
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // Loading and error states for view pages.
   bool isLoading = false;
   String error_message = '';
 
+  // Entity objects used by the Manage Co-curriculum module.
   StudentModel? student;
   CoCurriculumClaimModel? claim;
 
+  // List of student co-curriculum records retrieved from Firestore.
   List<StudentCoCurriculumRecordModel> records = [];
-  List<CoCurriculumClaimModel> claims = [];
-  List<CoCurriculumModuleModel> availableModules = [];
 
+  // List of all claims used by Pusat ADAB.
+  List<CoCurriculumClaimModel> claims = [];
+
+  // Module information is stored in a map to easily get module details by module_id.
   Map<String, CoCurriculumModuleModel> modules = {};
 
-  // OOP METHOD: Retrieves student entity detail from Firestore.
+  // Retrieves student information from the Student collection.
   Future<void> getStudentDetail(String student_id) async {
     try {
       final doc = await _firestore.collection('Student').doc(student_id).get();
 
       if (doc.exists) {
         student = StudentModel.fromFirestore(doc);
-      } else {
-        student = null;
       }
 
       notifyListeners();
@@ -39,7 +43,8 @@ class CoCurriculumController extends ChangeNotifier {
     }
   }
 
-  // OOP METHOD: Retrieves student co-curriculum records and module data.
+  // Retrieves student co-curriculum records based on student_id.
+  // This method supports the student view record requirement.
   Future<void> getStudentRecords(String student_id) async {
     try {
       isLoading = true;
@@ -47,7 +52,6 @@ class CoCurriculumController extends ChangeNotifier {
       notifyListeners();
 
       await getStudentDetail(student_id);
-      await getCoCurriculumModules();
 
       final snapshot = await _firestore
           .collection('StudentCoCurriculumRecord')
@@ -58,11 +62,7 @@ class CoCurriculumController extends ChangeNotifier {
           .map((doc) => StudentCoCurriculumRecordModel.fromFirestore(doc))
           .toList();
 
-      records.sort((a, b) {
-        final aDate = a.date_created ?? DateTime(2000);
-        final bDate = b.date_created ?? DateTime(2000);
-        return bDate.compareTo(aDate);
-      });
+      await getCoCurriculumModules();
 
       isLoading = false;
       notifyListeners();
@@ -73,17 +73,16 @@ class CoCurriculumController extends ChangeNotifier {
     }
   }
 
-  // OOP METHOD: Retrieves all module entities and stores them in a map.
+  // Retrieves co-curriculum module details from Firestore.
+  // This allows the view page to display module name, category and status.
   Future<void> getCoCurriculumModules() async {
     try {
       final snapshot = await _firestore.collection('CoCurriculumModule').get();
 
-      modules = {};
-
-      for (var doc in snapshot.docs) {
-        final module = CoCurriculumModuleModel.fromFirestore(doc);
-        modules[module.module_id] = module;
-      }
+      modules = {
+        for (var doc in snapshot.docs)
+          doc.id: CoCurriculumModuleModel.fromFirestore(doc),
+      };
 
       notifyListeners();
     } catch (e) {
@@ -92,202 +91,21 @@ class CoCurriculumController extends ChangeNotifier {
     }
   }
 
-  // OOP METHOD: Retrieves active co-curriculum modules for registration.
-  Future<void> getAvailableModules() async {
-    try {
-      isLoading = true;
-      error_message = '';
-      notifyListeners();
-
-      final snapshot = await _firestore.collection('CoCurriculumModule').get();
-
-      final allModules = snapshot.docs
-          .map((doc) => CoCurriculumModuleModel.fromFirestore(doc))
-          .toList();
-
-      availableModules = allModules.where((module) {
-        return module.module_status.toLowerCase() == 'active';
-      }).toList();
-
-      availableModules.sort((a, b) {
-        final aDate = a.module_date ?? DateTime(2100);
-        final bDate = b.module_date ?? DateTime(2100);
-        return aDate.compareTo(bDate);
-      });
-
-      modules = {
-        for (final module in allModules) module.module_id: module,
-      };
-
-      isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      isLoading = false;
-      error_message = 'Failed to retrieve available modules.';
-      notifyListeners();
-    }
-  }
-
-  // OOP METHOD: Adds a new module entity created by Pusat ADAB.
-  Future<String> addCoCurriculumModule({
-    required String module_name,
-    required String module_category,
-    required int credit_value,
-    required DateTime module_date,
-    required String created_by,
-  }) async {
-    try {
-      isLoading = true;
-      error_message = '';
-      notifyListeners();
-
-      final moduleRef = _firestore.collection('CoCurriculumModule').doc();
-
-      final module = CoCurriculumModuleModel(
-        module_id: moduleRef.id,
-        module_name: module_name,
-        module_category: module_category,
-        credit_value: credit_value,
-        module_status: 'Active',
-        module_date: module_date,
-        created_by: created_by,
-        date_created: DateTime.now(),
-      );
-
-      await moduleRef.set(module.toFirestore());
-
-      await getAvailableModules();
-
-      isLoading = false;
-      notifyListeners();
-
-      return 'Module added successfully.';
-    } catch (e) {
-      isLoading = false;
-      error_message = 'Failed to add module.';
-      notifyListeners();
-
-      return 'Failed to add module.';
-    }
-  }
-
-  // OOP METHOD: Registers a student for a selected co-curriculum module.
-  Future<String> registerModule({
-    required String student_id,
-    required String module_id,
-  }) async {
-    try {
-      isLoading = true;
-      error_message = '';
-      notifyListeners();
-
-      final duplicateSnapshot = await _firestore
-          .collection('StudentCoCurriculumRecord')
-          .where('student_id', isEqualTo: student_id)
-          .where('module_id', isEqualTo: module_id)
-          .get();
-
-      if (duplicateSnapshot.docs.isNotEmpty) {
-        isLoading = false;
-        notifyListeners();
-        return 'You have already registered this module.';
-      }
-
-      final recordRef =
-          _firestore.collection('StudentCoCurriculumRecord').doc();
-
-      final record = StudentCoCurriculumRecordModel(
-        record_id: recordRef.id,
-        student_id: student_id,
-        module_id: module_id,
-        completion_status: 'Registered',
-        registered_date: DateTime.now(),
-        completion_date: null,
-        date_created: DateTime.now(),
-      );
-
-      await recordRef.set(record.toFirestore());
-
-      await getStudentRecords(student_id);
-
-      isLoading = false;
-      notifyListeners();
-
-      return 'Module registered successfully.';
-    } catch (e) {
-      isLoading = false;
-      error_message = 'Failed to register module.';
-      notifyListeners();
-
-      return 'Failed to register module.';
-    }
-  }
-
-  // OOP METHOD: Marks a registered module as completed after module date.
-  Future<String> markModuleAsCompleted({
-    required String student_id,
-    required StudentCoCurriculumRecordModel record,
-  }) async {
-    try {
-      isLoading = true;
-      error_message = '';
-      notifyListeners();
-
-      final module = modules[record.module_id];
-
-      if (module == null) {
-        isLoading = false;
-        notifyListeners();
-        return 'Module information not found.';
-      }
-
-      if (!module.isModuleDateReached()) {
-        isLoading = false;
-        notifyListeners();
-        return 'You can only mark this module as completed after the module date.';
-      }
-
-      await _firestore
-          .collection('StudentCoCurriculumRecord')
-          .doc(record.record_id)
-          .update({
-        'completion_status': 'Completed',
-        'completion_date': Timestamp.fromDate(DateTime.now()),
-      });
-
-      await getStudentRecords(student_id);
-
-      isLoading = false;
-      notifyListeners();
-
-      return 'Module marked as completed.';
-    } catch (e) {
-      isLoading = false;
-      error_message = 'Failed to update module status.';
-      notifyListeners();
-
-      return 'Failed to update module status.';
-    }
-  }
-
-  // OOP METHOD: Counts completed student module records.
+  // Counts the number of completed modules.
+  // The student must complete at least 4 modules before claiming credit.
   int getCompletedModuleCount() {
     return records.where((record) => record.isCompleted()).length;
   }
 
-  // OOP METHOD: Counts registered student module records.
-  int getRegisteredModuleCount() {
-    return records.where((record) => record.isRegistered()).length;
-  }
-
-  // OOP METHOD: Checks whether student completed at least 4 modules.
+  // Checks whether the student is eligible to submit a co-curriculum claim.
   Future<bool> checkEligibility(String student_id) async {
     await getStudentRecords(student_id);
 
     return getCompletedModuleCount() >= 4;
   }
 
-  // OOP METHOD: Checks duplicate pending or approved claims.
+  // Checks whether the student already submitted a claim.
+  // This prevents duplicate claim submission.
   Future<bool> checkDuplicateClaim(String student_id) async {
     final snapshot = await _firestore
         .collection('CoCurriculumClaim')
@@ -301,7 +119,8 @@ class CoCurriculumController extends ChangeNotifier {
     return snapshot.docs.isNotEmpty;
   }
 
-  // OOP METHOD: Submits a claim with Pending Verification status.
+  // Creates a new co-curriculum claim with Pending Verification status.
+  // This method returns a message for the boundary/view page to display.
   Future<String> submitClaim(String student_id) async {
     try {
       isLoading = true;
@@ -350,7 +169,8 @@ class CoCurriculumController extends ChangeNotifier {
     }
   }
 
-  // OOP METHOD: Retrieves the latest claim status for student.
+  // Retrieves the latest claim status for a selected student.
+  // This supports the ClaimStatusPage boundary class.
   Future<CoCurriculumClaimModel?> getClaimStatus(String student_id) async {
     try {
       isLoading = true;
@@ -389,7 +209,8 @@ class CoCurriculumController extends ChangeNotifier {
     }
   }
 
-  // OOP METHOD: Retrieves all claim records for Pusat ADAB queue.
+  // Retrieves all student claims for Pusat ADAB.
+  // This method follows the getAllClaims() method stated in the SDD.
   Future<void> getAllClaims() async {
     try {
       isLoading = true;
@@ -415,7 +236,8 @@ class CoCurriculumController extends ChangeNotifier {
     }
   }
 
-  // OOP METHOD: Filters all pending verification claims.
+  // Retrieves only Pending Verification claims.
+  // This method is used by AdabClaimListPage to show claims that require action.
   Future<List<CoCurriculumClaimModel>> getAllPendingClaims() async {
     await getAllClaims();
 
@@ -424,7 +246,8 @@ class CoCurriculumController extends ChangeNotifier {
         .toList();
   }
 
-  // OOP METHOD: Retrieves selected claim detail by claim ID.
+  // Retrieves selected claim detail using claim_id.
+  // This method follows the getClaimDetail(claim_id) method stated in the SDD.
   Future<CoCurriculumClaimModel?> getClaimDetail(String claim_id) async {
     try {
       final doc = await _firestore
@@ -447,7 +270,8 @@ class CoCurriculumController extends ChangeNotifier {
     }
   }
 
-  // OOP METHOD: Approves claim, updates status and adds 2 credits.
+  // Approves a selected claim and adds 2 co-curriculum credits to the student.
+  // Firestore transaction is used to update claim and student credit together.
   Future<void> approveClaim(
     String claim_id,
     String staff_id,
@@ -477,20 +301,15 @@ class CoCurriculumController extends ChangeNotifier {
         'credit_awarded': 2,
       });
 
-      transaction.set(
-        studentRef,
-        {
-          'student_id': student_id,
-          'co_curriculum_credit': FieldValue.increment(2),
-        },
-        SetOptions(merge: true),
-      );
+      transaction.update(studentRef, {
+        'co_curriculum_credit': FieldValue.increment(2),
+      });
     });
 
     notifyListeners();
   }
 
-  // OOP METHOD: Rejects claim and stores rejection reason.
+  // Rejects a selected claim and stores the rejection reason.
   Future<void> rejectClaim(
     String claim_id,
     String staff_id,
