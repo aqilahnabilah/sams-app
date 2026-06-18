@@ -45,10 +45,19 @@ void main() async {
             locationVerification: context.read<LocationVerification>(),
             classCodeController: context.read<ClassCodeController>(),
           ),
-          update: (context, location, code, previous) => AttendanceController(
-            locationVerification: location,
-            classCodeController: code,
-          ),
+          update: (context, location, code, previous) {
+            if (previous == null) {
+              return AttendanceController(
+                locationVerification: location,
+                classCodeController: code,
+              );
+            }
+            previous.update(
+              locationVerification: location,
+              classCodeController: code,
+            );
+            return previous;
+          },
         ),
       ],
       child: const MyApp(),

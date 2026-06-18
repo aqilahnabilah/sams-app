@@ -6,15 +6,15 @@ import 'package:flutter/foundation.dart';
 import '../../domain/Attendance/AttendanceRecordModel.dart';
 import '../../domain/Attendance/ClassSessionModel.dart';
 import '../../utils/constants.dart';
-import '../../utils/haversine.dart';
 import 'ClassCodeController.dart';
 import 'LocationVerificationController.dart';
 
 /// SAMS-PACK-307 — Attendance submission orchestration.
 class AttendanceController extends ChangeNotifier {
   final FirebaseFirestore _db;
-  final LocationVerification _locationVerification;
-  final ClassCodeController _classCodeController;
+  LocationVerification _locationVerification;
+  ClassCodeController _classCodeController;
+  bool _isDisposed = false;
 
   AttendanceController({
     FirebaseFirestore? db,
@@ -23,6 +23,16 @@ class AttendanceController extends ChangeNotifier {
   })  : _db = db ?? FirebaseFirestore.instance,
         _locationVerification = locationVerification,
         _classCodeController = classCodeController;
+
+  /// Updates the controller's dependencies without disposing the instance.
+  void update({
+    required LocationVerification locationVerification,
+    required ClassCodeController classCodeController,
+  }) {
+    if (_isDisposed) return;
+    _locationVerification = locationVerification;
+    _classCodeController = classCodeController;
+  }
 
   bool _isSubmitting = false;
   String? _lastResult;
@@ -35,10 +45,20 @@ class AttendanceController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _attendanceSubscription?.cancel();
     super.dispose();
   }
 
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) {
+      super.notifyListeners();
+    }
+  }
+
+  /// Processes a student's check-in attempt.
+  /// Verifies the class code and ensures the student is within the UMPSA area.
   Future<Map<String, dynamic>> submitAttendance({
     required String studentId,
     required String codeInput,
@@ -48,13 +68,18 @@ class AttendanceController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      debugPrint('SAMS_DEBUG: Starting attendance submission for $studentId');
+      
+      // 1. Validate the class code
       final codeModel =
           await _classCodeController.validateClassCode(codeInput);
       if (codeModel == null) {
+        debugPrint('SAMS_DEBUG: Invalid code provided: $codeInput');
         _lastResult = 'invalid_code';
         return {'status': 'invalid_code'};
       }
 
+      // 2. Fetch session context
       final sessionDoc = await _db
           .collection(FirestoreCollections.classSessions)
           .doc(codeModel.classSessionId)
@@ -62,68 +87,39 @@ class AttendanceController extends ChangeNotifier {
       
       bool requiresLocation = true;
       String subjectCode = 'Subject';
-      double? sessionLat;
-      double? sessionLng;
       
       if (sessionDoc.exists) {
         final session = ClassSessionModel.fromMap(sessionDoc.data()!);
         subjectCode = session.subjectCode;
         requiresLocation = session.requiresLocation;
-        sessionLat = session.latitude;
-        sessionLng = session.longitude;
 
         if (!session.isOpen()) {
+          debugPrint('SAMS_DEBUG: Session is closed for ID: ${codeModel.classSessionId}');
           _lastResult = 'invalid_code';
           return {'status': 'invalid_code'};
         }
       }
 
+      // 3. Location Verification (UMPSA Geofence Only)
       if (requiresLocation) {
         final gpsOk = await _locationVerification.checkGPSPermission();
         if (!gpsOk) {
+          debugPrint('SAMS_DEBUG: GPS permission denied or service disabled.');
           _lastResult = 'gps_denied';
           return {'status': 'gps_denied'};
         }
 
-        // 1. Get current position and verify.
-        // We pass target location to LocationVerification so it can update its status message.
-        await _locationVerification.verifyCurrentLocation(
-          targetLat: sessionLat,
-          targetLon: sessionLng,
-        );
+        // Verify that the student is physically on campus.
+        await _locationVerification.verifyCurrentLocation();
 
-        if (_locationVerification.currentLatitude == null) {
-          _lastResult = 'gps_denied';
-          return {'status': 'gps_denied'};
-        }
-        
-        // 2. If session has a specific location, match against it. 
-        // Otherwise fallback to campus default.
-        if (sessionLat != null && sessionLng != null) {
-          final dist = haversineDistanceMeters(
-            lat1: _locationVerification.currentLatitude!,
-            lon1: _locationVerification.currentLongitude!,
-            lat2: sessionLat,
-            lon2: sessionLng,
-          );
-          
-          debugPrint('SAMS_DEBUG: Student is $dist meters from Lecturer.');
-          
-          if (dist > 1000) { // 1,000 meters tolerance from lecturer
-            _lastResult = 'outside_campus';
-            return {'status': 'outside_campus'};
-          }
-        } else {
-          debugPrint('SAMS_DEBUG: Session has no saved location. Falling back to Campus Geofence.');
-          // Fallback to campus geofence if session location isn't set
-          if (!_locationVerification.isOnCampus) {
-            debugPrint('SAMS_DEBUG: Student is NOT on campus (dist: ${_locationVerification.lastDistanceMeters}m).');
-            _lastResult = 'outside_campus';
-            return {'status': 'outside_campus'};
-          }
+        if (!_locationVerification.isOnCampus) {
+          debugPrint('SAMS_DEBUG: Student is NOT on campus (dist: ${_locationVerification.lastDistanceMeters}m).');
+          _lastResult = 'outside_campus';
+          return {'status': 'outside_campus'};
         }
       }
 
+      // 4. Check for duplicate submission
       final duplicate = await _db
           .collection(FirestoreCollections.attendanceRecords)
           .where('student_id', isEqualTo: studentId)
@@ -132,6 +128,7 @@ class AttendanceController extends ChangeNotifier {
           .get();
 
       if (duplicate.docs.isNotEmpty) {
+        debugPrint('SAMS_DEBUG: Duplicate check-in detected for $studentId');
         _lastResult = 'duplicate';
         return {
           'status': 'duplicate',
@@ -139,10 +136,11 @@ class AttendanceController extends ChangeNotifier {
         };
       }
 
+      // 5. Create Attendance Record
       final attendanceId =
           _db.collection(FirestoreCollections.attendanceRecords).doc().id;
       final locationId =
-          _locationVerification.activeLocation?.locationId ?? '';
+          _locationVerification.activeLocation?.locationId ?? 'UMPSA';
 
       final record = AttendanceRecordModel(
         attendanceId: attendanceId,
@@ -162,13 +160,14 @@ class AttendanceController extends ChangeNotifier {
           .doc(attendanceId)
           .set(record.toMap());
 
+      debugPrint('SAMS_DEBUG: Attendance successfully recorded: $attendanceId');
       _lastResult = 'success';
       return {
         'status': 'success',
         'subjectCode': subjectCode,
       };
     } catch (e) {
-      debugPrint('submitAttendance error: $e');
+      debugPrint('SAMS_ERROR: submitAttendance error: $e');
       if (e is FirebaseException) {
         _lastResult = 'db_error';
         return {'status': 'db_error'};
@@ -182,6 +181,7 @@ class AttendanceController extends ChangeNotifier {
     }
   }
 
+  /// Listens to real-time check-ins for a specific class session.
   void listenToSessionAttendance(String classSessionId) {
     _attendanceSubscription?.cancel();
     _attendanceSubscription = _db
@@ -193,18 +193,19 @@ class AttendanceController extends ChangeNotifier {
           .map((d) => AttendanceRecordModel.fromMap(d.data()))
           .toList();
           
-      // Manual sort
+      // Sort newest first
       records.sort((a, b) => b.checkInTime.compareTo(a.checkInTime));
       
       _sessionRecords = records;
       notifyListeners();
     }, onError: (e) {
-      debugPrint('listenToSessionAttendance error: $e');
+      debugPrint('SAMS_ERROR: listenToSessionAttendance error: $e');
       _sessionRecords = [];
       notifyListeners();
     });
   }
 
+  /// Stops the real-time check-in stream.
   void stopListeningToSessionAttendance() {
     _attendanceSubscription?.cancel();
     _attendanceSubscription = null;
@@ -212,6 +213,7 @@ class AttendanceController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Fetches the check-in history for a specific student.
   Future<List<AttendanceRecordModel>> fetchStudentHistory(
     String studentId,
   ) async {
@@ -225,16 +227,16 @@ class AttendanceController extends ChangeNotifier {
           .map((d) => AttendanceRecordModel.fromMap(d.data()))
           .toList();
           
-      // Manual sort to avoid needing a Firestore composite index
       records.sort((a, b) => b.checkInTime.compareTo(a.checkInTime));
       
       return records;
     } catch (e) {
-      debugPrint('fetchStudentHistory error: $e');
+      debugPrint('SAMS_ERROR: fetchStudentHistory error: $e');
       return [];
     }
   }
 
+  /// Retrieves all class sessions created by a specific staff member.
   Future<List<ClassSessionModel>> fetchLecturerSessions(String staffId) async {
     try {
       final snapshot = await _db
@@ -246,16 +248,16 @@ class AttendanceController extends ChangeNotifier {
           .map((d) => ClassSessionModel.fromMap(d.data()))
           .toList();
       
-      // Sort by date/time (if possible)
       sessions.sort((a, b) => b.classDate.compareTo(a.classDate));
       
       return sessions;
     } catch (e) {
-      debugPrint('fetchLecturerSessions error: $e');
+      debugPrint('SAMS_ERROR: fetchLecturerSessions error: $e');
       return [];
     }
   }
 
+  /// Retrieves sessions for a specific subject taught by a staff member.
   Future<List<ClassSessionModel>> fetchSubjectSessions(String staffId, String subjectCode) async {
     try {
       final snapshot = await _db
@@ -271,11 +273,12 @@ class AttendanceController extends ChangeNotifier {
       sessions.sort((a, b) => b.classDate.compareTo(a.classDate));
       return sessions;
     } catch (e) {
-      debugPrint('fetchSubjectSessions error: $e');
+      debugPrint('SAMS_ERROR: fetchSubjectSessions error: $e');
       return [];
     }
   }
 
+  /// Returns the total number of students who checked in for a session.
   Future<int> getSessionAttendanceCount(String classSessionId) async {
     try {
       final snapshot = await _db
@@ -288,6 +291,7 @@ class AttendanceController extends ChangeNotifier {
     }
   }
 
+  /// Toggles the operational state (Open/Closed) of a class session.
   Future<void> toggleSessionStatus(ClassSessionModel session) async {
     try {
       final newStatus = session.isOpen() ? 'Closed' : 'Open';
@@ -297,7 +301,7 @@ class AttendanceController extends ChangeNotifier {
           .update({'session_status': newStatus});
       notifyListeners();
     } catch (e) {
-      debugPrint('toggleSessionStatus error: $e');
+      debugPrint('SAMS_ERROR: toggleSessionStatus error: $e');
     }
   }
 }

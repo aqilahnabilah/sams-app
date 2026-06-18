@@ -230,8 +230,13 @@ class _StudentCheckInViewState extends State<_StudentCheckInView> {
                         height: 64,
                         child: ElevatedButton.icon(
                           onPressed: attendance.isSubmitting ? null : _submitCheckIn,
-                          icon: const Icon(Icons.check_circle_outline),
-                          label: const Text('Submit Attendance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          icon: attendance.isSubmitting 
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.check_circle_outline),
+                          label: Text(
+                            attendance.isSubmitting ? 'Verifying...' : 'Submit Attendance', 
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.teal.shade400,
                             foregroundColor: Colors.white,

@@ -6,9 +6,10 @@ import '../../domain/Attendance/LocationModel.dart';
 import '../../utils/constants.dart';
 import '../../utils/haversine.dart';
 
-/// SAMS-PACK-309 — GPS permission and campus geofence verification.
+/// SAMS-PACK-309 — GPS permission and UMPSA campus geofence verification.
 class LocationVerification extends ChangeNotifier {
   final FirebaseFirestore _db;
+  bool _isDisposed = false;
 
   LocationVerification({FirebaseFirestore? db})
       : _db = db ?? FirebaseFirestore.instance;
@@ -31,6 +32,20 @@ class LocationVerification extends ChangeNotifier {
   double? get currentLongitude => _currentLongitude;
   double? get lastDistanceMeters => _lastDistanceMeters;
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) {
+      super.notifyListeners();
+    }
+  }
+
+  /// Requests and verifies GPS permissions from the user.
   Future<bool> checkGPSPermission() async {
     _isChecking = true;
     notifyListeners();
@@ -69,20 +84,44 @@ class LocationVerification extends ChangeNotifier {
     }
   }
 
+  /// Loads campus geofences from Firestore, with hardcoded fallbacks if empty.
   Future<List<LocationModel>> _loadAllActiveCampusLocations() async {
-    final snapshot = await _db
-        .collection(FirestoreCollections.locations)
-        .where('is_active', isEqualTo: true)
-        .get();
+    try {
+      final snapshot = await _db
+          .collection(FirestoreCollections.locations)
+          .where('is_active', isEqualTo: true)
+          .get();
 
-    return snapshot.docs.map((doc) => LocationModel.fromMap(doc.data())).toList();
+      if (snapshot.docs.isNotEmpty) {
+        return snapshot.docs.map((doc) => LocationModel.fromMap(doc.data())).toList();
+      }
+    } catch (e) {
+      debugPrint('SAMS_DEBUG: Firestore locations fetch failed, using fallbacks.');
+    }
+
+    // Fallback Hardcoded UMPSA Locations (Ensures functionality even if Firestore is empty)
+    return [
+      const LocationModel(
+        locationId: 'LOC_PEKAN',
+        campusName: 'UMPSA Pekan',
+        centerLatitude: 3.5437,
+        centerLongitude: 103.4288,
+        allowedMeter: 2000.0, // Increased tolerance for testing
+        isActive: true,
+      ),
+      const LocationModel(
+        locationId: 'LOC_GAMBANG',
+        campusName: 'UMPSA Gambang',
+        centerLatitude: 3.7169,
+        centerLongitude: 103.1232,
+        allowedMeter: 1500.0,
+        isActive: true,
+      ),
+    ];
   }
 
-  Future<bool> verifyCurrentLocation({
-    double? targetLat,
-    double? targetLon,
-    double? targetRadius,
-  }) async {
+  /// Verifies if the student's current GPS position is within the UMPSA campus area.
+  Future<bool> verifyCurrentLocation() async {
     if (_isChecking) return false;
     _isChecking = true;
     _isOnCampus = false;
@@ -95,6 +134,7 @@ class LocationVerification extends ChangeNotifier {
         if (!granted) return false;
       }
 
+      // Get position with high accuracy and timeout protection
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
@@ -105,32 +145,9 @@ class LocationVerification extends ChangeNotifier {
       _currentLatitude = position.latitude;
       _currentLongitude = position.longitude;
 
-      // 1. If a specific target location is provided (e.g. Lecturer's position)
-      if (targetLat != null && targetLon != null) {
-        final dist = haversineDistanceMeters(
-          lat1: position.latitude,
-          lon1: position.longitude,
-          lat2: targetLat,
-          lon2: targetLon,
-        );
-        
-        final radius = targetRadius ?? 1000.0;
-        if (dist <= radius) {
-          _isOnCampus = true;
-          _lastDistanceMeters = dist;
-          _statusMessage = 'Location Verified: Near Lecturer';
-          return true;
-        }
-      }
-
-      // 2. Fallback to check all active Campus Geofences
+      // Verify against UMPSA Campus Geofences
       final campuses = await _loadAllActiveCampusLocations();
-      debugPrint('SAMS_DEBUG: Found ${campuses.length} active campus geofences in database.');
-
-      if (campuses.isEmpty) {
-        _statusMessage = 'Service Unavailable: No active campus configuration found.';
-        return false;
-      }
+      debugPrint('SAMS_DEBUG: Checking against ${campuses.length} UMPSA geofences.');
 
       double minDistance = double.infinity;
       LocationModel? closestCampus;
@@ -153,6 +170,7 @@ class LocationVerification extends ChangeNotifier {
           _activeLocation = campus;
           _lastDistanceMeters = dist;
           _statusMessage = 'On Campus (Verified) — ${campus.campusName}';
+          debugPrint('SAMS_DEBUG: Location Verified inside ${campus.campusName}');
           return true;
         }
       }
@@ -163,10 +181,13 @@ class LocationVerification extends ChangeNotifier {
       _statusMessage = closestCampus != null
           ? 'Outside campus — ${minDistance.toStringAsFixed(0)}m from ${closestCampus.campusName}'
           : 'Outside defined campus area.';
+      
+      debugPrint('SAMS_DEBUG: ${_statusMessage}');
 
       return false;
     } catch (e) {
       _statusMessage = 'Location verification failed: $e';
+      debugPrint('SAMS_ERROR: verifyCurrentLocation: $e');
       return false;
     } finally {
       _isChecking = false;

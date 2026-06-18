@@ -349,9 +349,9 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
               ),
             ),
           ),
-          _sessionCard(context, 'BCS3133', 'Software Engineering Practices', Icons.code),
-          _sessionCard(context, 'BCS3143', 'Software Project Management', Icons.assignment),
-          _sessionCard(context, 'BCS3233', 'Software Testing', Icons.bug_report),
+          _sessionCard(context, 'BCS3133', 'Software Engineering Practices', Icons.code, '01', '10:00 AM', '12:00 PM'),
+          _sessionCard(context, 'BCS3143', 'Software Project Management', Icons.assignment, '02', '02:00 PM', '04:00 PM'),
+          _sessionCard(context, 'BCS3233', 'Software Testing', Icons.bug_report, '01', '08:00 AM', '10:00 AM'),
           const SizedBox(height: 12),
         ],
         ActionCard(
@@ -359,6 +359,12 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
           subtitle: 'Review student registration requests.',
           icon: Icons.fact_check_outlined,
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => const SubjectApprovalsPage())),
+        ),
+        ActionCard(
+          title: 'Attendance History',
+          subtitle: 'View records of completed sessions.',
+          icon: Icons.history,
+          onTap: () => Navigator.pushNamed(context, '/student/attendance-history'),
         ),
         ActionCard(
           title: 'My Courses',
@@ -370,13 +376,19 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
     );
   }
 
-  Widget _sessionCard(BuildContext context, String code, String name, IconData icon) {
+  Widget _sessionCard(BuildContext context, String code, String name, IconData icon, String section, String start, String end) {
     return ActionCard(
-      title: code,
-      subtitle: name,
+      title: '$code - Sec $section',
+      subtitle: '$name\n($start - $end)',
       icon: icon,
       color: Colors.tealAccent.shade100,
-      onTap: () => Navigator.pushNamed(context, '/lecturer/sessions', arguments: {'subjectCode': code, 'subjectName': name}),
+      onTap: () => Navigator.pushNamed(context, '/lecturer/sessions', arguments: {
+        'subjectCode': code,
+        'subjectName': name,
+        'classSection': section,
+        'startTime': start,
+        'endTime': end,
+      }),
     );
   }
 }

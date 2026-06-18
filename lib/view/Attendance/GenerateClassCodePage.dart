@@ -7,11 +7,11 @@ import 'package:provider/provider.dart';
 import '../../domain/Attendance/ClassSessionModel.dart';
 import '../../provider/Attendance/ClassCodeController.dart';
 import '../../provider/Attendance/AttendanceController.dart';
-import '../../provider/Attendance/LocationVerificationController.dart';
 import '../../provider/Authentication/AuthController.dart';
 import '../../theme/sams_theme.dart';
 
-/// SAMS-PACK-311 — Redesigned "Manage Attendance" UI with Dark Gradient Theme.
+/// SAMS-PACK-311 — Redesigned "Attendance" UI with Dark Gradient Theme.
+/// If a session is Closed, the "Live" elements are cleared.
 class GenerateClassCodePage extends StatefulWidget {
   const GenerateClassCodePage({super.key});
 
@@ -59,16 +59,15 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
     final att = context.read<AttendanceController>();
     final sessions = await att.fetchSubjectSessions(user.userId, _session!.subjectCode);
     
-    final history = sessions.where((s) => s.sessionStatus == 'Closed').toList();
+    // Sort all sessions for this subject by date/time (newest first)
+    _historySessions = sessions.reversed.toList();
     
-    for (var s in history) {
+    for (var s in _historySessions) {
       _sessionCounts[s.classSessionId] = await att.getSessionAttendanceCount(s.classSessionId);
     }
 
     if (mounted) {
-      setState(() {
-        _historySessions = history;
-      });
+      setState(() {});
     }
   }
 
@@ -112,7 +111,7 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
                     ),
                     const Expanded(
                       child: Text(
-                        'Manage Attendance',
+                        'Attendance',
                         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                       ),
                     ),
@@ -177,127 +176,116 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
                       
                       const SizedBox(height: 32),
                       
-                      Text(
-                        'Attendance Code'.toUpperCase(),
-                        style: TextStyle(color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 12),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Code display area
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 40),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(32),
-                          border: Border.all(color: Colors.white.withOpacity(0.1), width: 1.5),
-                        ),
-                        child: Center(
-                          child: _buildCodeDisplay(activeCode?.classCode),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 32),
-                      
-                      // Actions
-                      SizedBox(
-                        width: double.infinity,
-                        height: 64,
-                        child: ElevatedButton.icon(
-                          onPressed: () => context.read<ClassCodeController>().generateClassCode(session.classSessionId, session.staffId),
-                          icon: const Icon(Icons.flash_on),
-                          label: const Text('Generate Code', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal.shade400,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            elevation: 0,
-                          ),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 56,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    '/lecturer/attendance-records',
-                                    arguments: session,
-                                  );
-                                },
-                                icon: const Icon(Icons.people_outline),
-                                label: const Text('Live Records', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white.withOpacity(0.08),
-                                  foregroundColor: Colors.tealAccent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    side: BorderSide(color: Colors.white.withOpacity(0.1)),
-                                  ),
-                                  elevation: 0,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: SizedBox(
-                              height: 56,
-                              child: OutlinedButton(
-                                onPressed: activeCode == null ? null : () => context.read<ClassCodeController>().regenerateClassCode(),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white70,
-                                  side: BorderSide(color: Colors.white.withOpacity(0.2)),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                ),
-                                child: const Text('Regenerate', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 32),
-                      
-                      // Toggles
-                      _toggleRow('Require Location', codeController.requiresLocation, (val) {
-                        context.read<ClassCodeController>().toggleLocationRequirement(session.classSessionId);
-                      }),
-                      
-                      const SizedBox(height: 12),
-                      
                       _toggleRow('Session Status (Open/Closed)', isOpen, (val) async {
-                        final loc = context.read<LocationVerification>();
                         final codeProv = context.read<ClassCodeController>();
-                        double? lat, lng;
-                        if (!isOpen) {
-                          await loc.checkGPSPermission();
-                          await loc.verifyCurrentLocation();
-                          lat = loc.currentLatitude;
-                          lng = loc.currentLongitude;
-                        }
-                        if (mounted) {
-                          await codeProv.toggleSessionStatus(session.classSessionId, lat: lat, lng: lng);
-                          await _loadHistory();
-                        }
+                        await codeProv.toggleSessionStatus(session);
+                        await _loadHistory();
                       }),
+
+                      if (isOpen) ...[
+                        const SizedBox(height: 32),
+                        Text(
+                          'Attendance Code'.toUpperCase(),
+                          style: TextStyle(color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 12),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(color: Colors.white.withOpacity(0.1), width: 1.5),
+                          ),
+                          child: Center(
+                            child: _buildCodeDisplay(activeCode?.classCode),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 64,
+                          child: ElevatedButton.icon(
+                            onPressed: () => context.read<ClassCodeController>().generateClassCode(session.classSessionId, session.staffId),
+                            icon: const Icon(Icons.flash_on),
+                            label: const Text('Generate Code', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal.shade400,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 56,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/lecturer/attendance-records',
+                                      arguments: session,
+                                    );
+                                  },
+                                  icon: const Icon(Icons.people_outline),
+                                  label: const Text('Live Records', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white.withOpacity(0.08),
+                                    foregroundColor: Colors.tealAccent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                      side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: SizedBox(
+                                height: 56,
+                                child: OutlinedButton(
+                                  onPressed: activeCode == null ? null : () => context.read<ClassCodeController>().regenerateClassCode(),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.white70,
+                                    side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  ),
+                                  child: const Text('Regenerate', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _toggleRow('Require Location', codeController.requiresLocation, (val) {
+                          context.read<ClassCodeController>().toggleLocationRequirement(session.classSessionId);
+                        }),
+                      ] else ...[
+                        const SizedBox(height: 40),
+                        Icon(Icons.lock_outline, size: 64, color: Colors.white.withOpacity(0.1)),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Session is currently closed.\nOpen the session to start recording attendance.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white.withOpacity(0.4), height: 1.5),
+                        ),
+                      ],
                       
                       const SizedBox(height: 40),
                       
-                      // History section
+                      // History section (Subject-specific history list)
                       if (_historySessions.isNotEmpty) ...[
                         Row(
                           children: [
                             const Icon(Icons.history, color: Colors.white70, size: 20),
                             const SizedBox(width: 8),
-                            const Text('Attendance History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                            const Text('Subject History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -375,7 +363,7 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
             ),
           ),
           Text(
-            value ? 'ON' : 'OFF',
+            value ? 'OPEN' : 'CLOSED',
             style: TextStyle(
               color: value ? Colors.greenAccent : Colors.redAccent,
               fontWeight: FontWeight.bold,
@@ -387,7 +375,7 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
             scale: 0.8,
             child: CupertinoSwitch(
               value: value,
-              activeTrackColor: Colors.tealAccent.withOpacity(0.3),
+              activeTrackColor: Colors.greenAccent.withOpacity(0.3),
               onChanged: onChanged,
             ),
           ),
