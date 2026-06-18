@@ -1,6 +1,11 @@
+// File: RegisterSubject.dart
+// Path: lib/view/subjectRegistration/student/RegisterSubject.dart
+// Purpose: Screen for students to select specific lecture sections and corresponding lab groups to request registration.
+
 import 'package:flutter/material.dart';
 import '../../../provider/subjectregistration/SubjectRegistrationController.dart';
 
+/// A screen that allows a student to register for a specific subject by choosing a lecture and lab section.
 class RegisterSubjectPage extends StatefulWidget {
   final String studentEmail;
   final String studentName;
@@ -31,6 +36,7 @@ class RegisterSubjectPage extends StatefulWidget {
   State<RegisterSubjectPage> createState() => _RegisterSubjectPageState();
 }
 
+/// State for [RegisterSubjectPage] handles user selections and submission of registration request.
 class _RegisterSubjectPageState extends State<RegisterSubjectPage> {
   final SubjectRegistrationController _registrationController = SubjectRegistrationController();
   String? _selectedSection;

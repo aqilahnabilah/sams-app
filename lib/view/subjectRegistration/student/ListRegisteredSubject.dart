@@ -1,8 +1,13 @@
+// File: ListRegisteredSubject.dart
+// Path: lib/view/subjectRegistration/student/ListRegisteredSubject.dart
+// Purpose: Screen for students to view their own active and pending subject registrations, as well as drop subjects.
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../services/course_service.dart';
 import '../../../domain/subjectregistration/SubjectRegistrationModel.dart';
 
+/// A screen that lists all subject registrations for a specific student.
 class ListRegisteredSubjectsPage extends StatefulWidget {
   final String studentEmail;
   final String studentName;
@@ -17,6 +22,7 @@ class ListRegisteredSubjectsPage extends StatefulWidget {
   State<ListRegisteredSubjectsPage> createState() => _ListRegisteredSubjectsPageState();
 }
 
+/// State for [ListRegisteredSubjectsPage] handles retrieving list of registrations and dropping subjects.
 class _ListRegisteredSubjectsPageState extends State<ListRegisteredSubjectsPage> {
   final CourseService _courseService = CourseService();
   final Map<String, bool> _processingItems = {};

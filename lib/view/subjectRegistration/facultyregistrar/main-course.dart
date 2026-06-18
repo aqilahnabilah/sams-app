@@ -1,3 +1,7 @@
+// File: main-course.dart
+// Path: lib/view/subjectRegistration/facultyregistrar/main-course.dart
+// Purpose: Screen for faculty registrars to view and manage existing subjects (view, add, edit, delete).
+
 // ignore_for_file: file_names, deprecated_member_use
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,6 +10,7 @@ import '../../../services/course_service.dart';
 import 'AddSubject.dart';
 import 'EditSubject.dart';
 
+/// A screen for faculty registrars to manage subjects and courses.
 class ManageCoursesPage extends StatefulWidget {
   const ManageCoursesPage({super.key});
 

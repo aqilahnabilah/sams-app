@@ -1,9 +1,14 @@
+// File: subject_approvals.dart
+// Path: lib/view/subjectRegistration/advisor/subject_approvals.dart
+// Purpose: Allows academic advisors to view, approve, or reject student subject registration requests.
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../services/course_service.dart';
 import '../../../domain/subjectregistration/SubjectRegistrationModel.dart';
 import '../../../theme/sams_theme.dart';
 
+/// A screen for advisors to approve or reject subject registrations.
 class SubjectApprovalsPage extends StatefulWidget {
   const SubjectApprovalsPage({super.key});
 
@@ -11,6 +16,7 @@ class SubjectApprovalsPage extends StatefulWidget {
   State<SubjectApprovalsPage> createState() => _SubjectApprovalsPageState();
 }
 
+/// State for [SubjectApprovalsPage] managing loading states and actions.
 class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
   final CourseService _courseService = CourseService();
   final Map<String, bool> _processingItems = {};
