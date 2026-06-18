@@ -13,10 +13,6 @@ import '../../view/StudentFee/StudentFeePage.dart';
 import '../../view/StudentFee/PaymentManagement.dart';
 import '../../view/co_curriculum/CoCurriculumPage.dart';
 import '../../view/co_curriculum/AdabClaimListPage.dart';
-<<<<<<< HEAD
-import '../../view/co_curriculum/AddCoCurriculumModulePage.dart';
-=======
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
 import 'login_page.dart';
 
 class BaseDashboard extends StatelessWidget {
@@ -311,8 +307,8 @@ class StudentDashboard extends StatelessWidget {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => CoCurriculumPage(
-                  email: userId,
-                  name: name.isNotEmpty ? name : userId,
+                  student_id: userId,
+                  full_name: name.isNotEmpty ? name : userId,
                 ),
               ),
             );
@@ -396,13 +392,6 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
       subtitle: '$name\n($start - $end)',
       icon: icon,
       color: Colors.tealAccent.shade100,
-<<<<<<< HEAD
-      onTap: () => Navigator.pushNamed(
-        context,
-        '/lecturer/sessions',
-        arguments: {'subjectCode': code, 'subjectName': name},
-      ),
-=======
       onTap: () => Navigator.pushNamed(context, '/lecturer/sessions', arguments: {
         'subjectCode': code,
         'subjectName': name,
@@ -410,7 +399,6 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
         'startTime': start,
         'endTime': end,
       }),
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
     );
   }
 }
@@ -478,13 +466,7 @@ class RegistrarDashboard extends StatelessWidget {
           title: 'Manage Courses',
           subtitle: 'Add or modify faculty subject lists.',
           icon: Icons.add_to_photos,
-<<<<<<< HEAD
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const ManageCoursesPage()),
-          ),
-=======
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ManageCoursesPage())),
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
         ),
         ActionCard(
           title: 'User Management',
@@ -523,18 +505,6 @@ class PusatAdabDashboard extends StatelessWidget {
           },
         ),
         ActionCard(
-<<<<<<< HEAD
-          title: 'Add Module',
-          subtitle: 'Create new co-curriculum modules for students.',
-          icon: Icons.add_circle_outline,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => AddCoCurriculumModulePage(staff_id: userId),
-              ),
-            );
-          },
-=======
           title: 'Moral Records',
           subtitle: 'Review student conduct and merit points.',
           icon: Icons.gavel,
@@ -545,7 +515,6 @@ class PusatAdabDashboard extends StatelessWidget {
           subtitle: 'Verify student behavioral status.',
           icon: Icons.verified_user,
           onTap: () {},
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
         ),
       ],
     );

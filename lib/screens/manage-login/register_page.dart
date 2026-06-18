@@ -20,7 +20,6 @@ class _RegisterPageState extends State<RegisterPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
-<<<<<<< HEAD
   final _programCodeController = TextEditingController();
   final _programNameController = TextEditingController();
   final _facultyController = TextEditingController();
@@ -29,8 +28,6 @@ class _RegisterPageState extends State<RegisterPage> {
   final _departmentController = TextEditingController(text: 'Pusat ADAB');
   final _statusController = TextEditingController(text: 'Active');
 
-=======
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
   bool _obscurePassword = true;
   String _selectedRole = UserModel.roleStudent;
 
@@ -39,6 +36,12 @@ class _RegisterPageState extends State<RegisterPage> {
     _userIdController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _programCodeController.dispose();
+    _programNameController.dispose();
+    _facultyController.dispose();
+    _currentSemController.dispose();
+    _departmentController.dispose();
+    _statusController.dispose();
     super.dispose();
   }
 
@@ -51,15 +54,12 @@ class _RegisterPageState extends State<RegisterPage> {
       username: _usernameController.text.trim(),
       password: _passwordController.text,
       role: _selectedRole,
-<<<<<<< HEAD
       programCode: _programCodeController.text.trim(),
       programName: _programNameController.text.trim(),
       faculty: _facultyController.text.trim(),
       currentSem: int.tryParse(_currentSemController.text.trim()) ?? 0,
       department: _departmentController.text.trim(),
       status: _statusController.text.trim(),
-=======
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
     );
 
     if (success && mounted) {
@@ -97,7 +97,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Back button & header row
                     Row(
                       children: [
                         IconButton(
@@ -116,11 +115,6 @@ class _RegisterPageState extends State<RegisterPage> {
                       ],
                     ),
                     const SizedBox(height: 24),
-<<<<<<< HEAD
-=======
-
-                    // Inputs Card Container
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
@@ -143,11 +137,6 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                           ),
                           const SizedBox(height: 24),
-<<<<<<< HEAD
-=======
-
-                          // User ID Input
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
                           TextFormField(
                             controller: _userIdController,
                             style: const TextStyle(color: Colors.white),
@@ -163,11 +152,6 @@ class _RegisterPageState extends State<RegisterPage> {
                             },
                           ),
                           const SizedBox(height: 16),
-<<<<<<< HEAD
-=======
-
-                          // Username Input
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
                           TextFormField(
                             controller: _usernameController,
                             style: const TextStyle(color: Colors.white),
@@ -183,11 +167,6 @@ class _RegisterPageState extends State<RegisterPage> {
                             },
                           ),
                           const SizedBox(height: 16),
-<<<<<<< HEAD
-=======
-
-                          // Password Input
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
@@ -217,7 +196,6 @@ class _RegisterPageState extends State<RegisterPage> {
                               return null;
                             },
                           ),
-<<<<<<< HEAD
                           const SizedBox(height: 24),
                           const Text(
                             'Select Your Role',
@@ -263,41 +241,6 @@ class _RegisterPageState extends State<RegisterPage> {
                             icon: Icons.verified_user,
                           ),
                           _buildRoleExtraFields(),
-=======
-                          const SizedBox(height: 16),
-
-                          // Role Selection Dropdown
-                          DropdownButtonFormField<String>(
-                            value: _selectedRole,
-                            dropdownColor: const Color(0xFF203A43),
-                            style: const TextStyle(color: Colors.white),
-                            decoration: _buildInputDecoration(
-                              label: 'Select Role',
-                              icon: Icons.work_outline,
-                            ),
-                            items: [
-                              UserModel.roleStudent,
-                              UserModel.roleLecturer,
-                              UserModel.roleTreasury,
-                              UserModel.rolePusatAdab,
-                              UserModel.roleFacultyRegistrar,
-                            ].map((String role) {
-                              return DropdownMenuItem<String>(
-                                value: role,
-                                child: Text(role),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              if (newValue != null) {
-                                setState(() {
-                                  _selectedRole = newValue;
-                                });
-                              }
-                            },
-                          ),
-
-                          // Error Message display
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
                           if (auth.errorMessage != null) ...[
                             const SizedBox(height: 16),
                             Text(
@@ -310,11 +253,6 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                           ],
                           const SizedBox(height: 28),
-<<<<<<< HEAD
-=======
-
-                          // Submit Button
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
                           SizedBox(
                             width: double.infinity,
                             height: 56,
@@ -359,7 +297,6 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-<<<<<<< HEAD
   Widget _buildRoleExtraFields() {
     if (_selectedRole == UserModel.roleStudent) {
       return _buildStudentExtraFields();
@@ -599,43 +536,6 @@ class _RegisterPageState extends State<RegisterPage> {
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: Colors.red.shade400, width: 2),
-=======
-  InputDecoration _buildInputDecoration({required String label, required IconData icon}) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(
-        color: Colors.white.withOpacity(0.6),
-      ),
-      prefixIcon: Icon(
-        icon,
-        color: Colors.white.withOpacity(0.6),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: Colors.white.withOpacity(0.2),
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: Colors.teal,
-          width: 2,
-        ),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: Colors.red.shade400,
-        ),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: Colors.red.shade400,
-          width: 2,
-        ),
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
       ),
     );
   }
