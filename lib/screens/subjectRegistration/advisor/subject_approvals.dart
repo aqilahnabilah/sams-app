@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../services/course_service.dart';
 import '../../../models/SubjectRegistrationModel.dart';
+import '../../../theme/sams_theme.dart';
 
 class SubjectApprovalsPage extends StatefulWidget {
   const SubjectApprovalsPage({super.key});
@@ -96,10 +97,7 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0B192C),
-              Color(0xFF1E3E62),
-            ],
+            colors: SamsColors.portalGradient,
           ),
         ),
         child: SafeArea(
@@ -206,30 +204,37 @@ class _SubjectApprovalsPageState extends State<SubjectApprovalsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 // Student header row
-                                Row(
+                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          reg.studentName,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            reg.studentName,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          reg.studentEmail,
-                                          style: TextStyle(
-                                            color: Colors.white.withOpacity(0.5),
-                                            fontSize: 12,
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            reg.studentEmail,
+                                            style: TextStyle(
+                                              color: Colors.white.withOpacity(0.5),
+                                              fontSize: 12,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
+                                    const SizedBox(width: 16),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
