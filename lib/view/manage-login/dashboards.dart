@@ -307,8 +307,8 @@ class StudentDashboard extends StatelessWidget {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => CoCurriculumPage(
-                  student_id: userId,
-                  full_name: name.isNotEmpty ? name : userId,
+                  email: userId,
+                  name: name.isNotEmpty ? name : userId,
                 ),
               ),
             );
@@ -357,9 +357,9 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
               ),
             ),
           ),
-          _sessionCard(context, 'BCS3133', 'Software Engineering Practices', Icons.code, '01', '10:00 AM', '12:00 PM'),
-          _sessionCard(context, 'BCS3143', 'Software Project Management', Icons.assignment, '02', '02:00 PM', '04:00 PM'),
-          _sessionCard(context, 'BCS3233', 'Software Testing', Icons.bug_report, '01', '08:00 AM', '10:00 AM'),
+          _sessionCard(context, 'BCS3133', 'Software Engineering Practices', Icons.code),
+          _sessionCard(context, 'BCS3143', 'Software Project Management', Icons.assignment),
+          _sessionCard(context, 'BCS3233', 'Software Testing', Icons.bug_report),
           const SizedBox(height: 12),
         ],
         ActionCard(
@@ -371,12 +371,6 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
           ),
         ),
         ActionCard(
-          title: 'Attendance History',
-          subtitle: 'View records of completed sessions.',
-          icon: Icons.history,
-          onTap: () => Navigator.pushNamed(context, '/lecturer/attendance-history'),
-        ),
-        ActionCard(
           title: 'My Courses',
           subtitle: 'View your assigned subjects and rosters.',
           icon: Icons.menu_book,
@@ -386,18 +380,18 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
     );
   }
 
-  Widget _sessionCard(BuildContext context, String code, String name, IconData icon, String section, String start, String end) {
+  Widget _sessionCard(BuildContext context, String code, String name, IconData icon) {
     return ActionCard(
-      title: '$code - Sec $section',
-      subtitle: '$name\n($start - $end)',
+      title: code,
+      subtitle: name,
       icon: icon,
       color: Colors.tealAccent.shade100,
       onTap: () => Navigator.pushNamed(context, '/lecturer/sessions', arguments: {
         'subjectCode': code,
         'subjectName': name,
-        'classSection': section,
-        'startTime': start,
-        'endTime': end,
+        'classSection': 'A',
+        'startTime': DateTime.now().subtract(const Duration(minutes: 15)),
+        'endTime': DateTime.now().add(const Duration(hours: 1)),
       }),
     );
   }

@@ -28,23 +28,18 @@ import 'view/Attendance/GenerateClassCodePage.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthController()),
         ChangeNotifierProvider(
-          create: (context) => LoginController(
-            context.read<AuthController>(),
-          ),
+          create: (context) => LoginController(context.read<AuthController>()),
         ),
         ChangeNotifierProvider(
-          create: (context) => RegisterController(
-            context.read<AuthController>(),
-          ),
+          create: (context) =>
+              RegisterController(context.read<AuthController>()),
         ),
         ChangeNotifierProvider(create: (_) => PaymentController()),
         ChangeNotifierProvider(create: (_) => CoCurriculumController()),
@@ -109,10 +104,7 @@ class MyApp extends StatelessWidget {
 class AuthWrapper extends StatelessWidget {
   final String? target;
 
-  const AuthWrapper({
-    super.key,
-    this.target,
-  });
+  const AuthWrapper({super.key, this.target});
 
   @override
   Widget build(BuildContext context) {
@@ -120,9 +112,7 @@ class AuthWrapper extends StatelessWidget {
 
     if (!auth.isInitialized) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.teal),
-        ),
+        body: Center(child: CircularProgressIndicator(color: Colors.teal)),
       );
     }
 
@@ -181,9 +171,7 @@ class AuthWrapper extends StatelessWidget {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  'Invalid user role: ${user.role}. Signing out.',
-                ),
+                content: Text('Invalid user role: ${user.role}. Signing out.'),
               ),
             );
           }
