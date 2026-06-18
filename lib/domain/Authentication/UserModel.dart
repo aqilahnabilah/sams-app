@@ -1,39 +1,61 @@
 /// Model for logged-in user information.
 class UserModel {
-  // --- Role names used in SAMS ---
+  // Canonical role names used by the app.
   static const String roleStudent = 'Student';
   static const String roleTreasury = 'Treasury';
   static const String roleLecturer = 'Lecturer';
   static const String rolePusatAdab = 'Pusat Adab';
   static const String roleFacultyRegistrar = 'Faculty Registrar';
 
-  // --- User attributes ---
-  final String userId; // e.g. Student ID (CB23026), Staff ID
-  final String username; // Full Name
+  final String userId; // Student ID / Staff ID, e.g. CB23026
+  final String username; // Full name
   final String role;
 
-  // --- Constructor ---
   UserModel({
     required this.userId,
     required this.username,
     required this.role,
   });
 
-  // --- Convert model to Map (e.g. for Firestore writes) ---
+  /// Converts older/typed role values into one consistent value.
+  static String normalizeRole(String? role) {
+    final value = (role ?? '')
+        .trim()
+        .toLowerCase()
+        .replaceAll('-', '_')
+        .replaceAll(' ', '_');
+
+    if (value == 'student') return roleStudent;
+    if (value == 'lecturer') return roleLecturer;
+    if (value == 'treasury' || value == 'treasury_officer') return roleTreasury;
+    if (value == 'faculty_registrar' || value == 'registrar') {
+      return roleFacultyRegistrar;
+    }
+    if (value == 'pusat_adab' ||
+        value == 'pusatadab' ||
+        value == 'adab' ||
+        value == 'adab_staff' ||
+        value == 'staff_adab') {
+      return rolePusatAdab;
+    }
+
+    return role ?? '';
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'user_id': userId,
       'username': username,
-      'role': role,
+      'name': username,
+      'role': normalizeRole(role),
     };
   }
 
-  // --- Create model from Firestore document data ---
   factory UserModel.fromFirestore(Map<String, dynamic> map) {
     return UserModel(
-      userId: map['user_id']?.toString() ?? '',
-      username: map['username']?.toString() ?? '',
-      role: map['role']?.toString() ?? '',
+      userId: (map['user_id'] ?? map['userId'] ?? map['student_id'] ?? map['staff_id'] ?? map['email'] ?? '').toString(),
+      username: (map['username'] ?? map['name'] ?? map['full_name'] ?? map['staff_name'] ?? '').toString(),
+      role: normalizeRole(map['role']?.toString()),
     );
   }
 }

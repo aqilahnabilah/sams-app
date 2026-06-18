@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../domain/Authentication/UserModel.dart';
 import '../../provider/Authentication/AuthController.dart';
 import 'login_page.dart';
 
@@ -27,8 +29,10 @@ class AuthRouteGuard extends StatelessWidget {
       return const LoginPage();
     }
 
-    final user = auth.currentUser!;
-    if (allowedRoles.contains(user.role)) {
+    final userRole = UserModel.normalizeRole(auth.currentUser?.role);
+    final normalizedAllowedRoles = allowedRoles.map(UserModel.normalizeRole).toList();
+
+    if (normalizedAllowedRoles.contains(userRole)) {
       return child;
     }
 

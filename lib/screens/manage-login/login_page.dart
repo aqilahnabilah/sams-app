@@ -2,9 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../domain/Authentication/UserModel.dart';
 import '../../provider/Authentication/AuthController.dart';
 import '../../provider/Authentication/LoginController.dart';
-import '../../domain/Authentication/UserModel.dart';
 import 'dashboards.dart';
 import 'register_page.dart';
 
@@ -41,49 +42,17 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
 
     if (success) {
-      final auth = context.read<AuthController>();
-      final user = auth.currentUser;
+      final user = context.read<AuthController>().currentUser;
       if (user != null) {
-<<<<<<< HEAD
-        // 2. Fetch the user's role from Firestore
-        final role = await _authService.getUserRole(user.uid);
-
-        if (role == null) {
-          // If no role is found, sign out and throw error
-          await _authService.signOut();
-          throw Exception('User account has no associated role.');
-        }
-
-        // 3. Route based on role.
-        // OOP METHOD: The AuthService normalizes role values before routing.
-        final storedName = await _authService.getUserName(user.uid);
-        final displayName = storedName.isNotEmpty
-            ? storedName
-            : (user.displayName ?? '');
-
-        if (mounted) {
-          _routeToDashboard(role, user.email ?? '', displayName);
-        }
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-=======
         _routeToDashboard(user.role, user.userId, user.username);
->>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
       }
     }
   }
 
   void _routeToDashboard(String role, String userId, String name) {
     Widget nextScreen;
-    switch (role) {
+
+    switch (UserModel.normalizeRole(role)) {
       case UserModel.roleStudent:
         nextScreen = StudentDashboard(userId: userId, name: name);
         break;
@@ -98,9 +67,6 @@ class _LoginPageState extends State<LoginPage> {
         break;
       case UserModel.rolePusatAdab:
         nextScreen = PusatAdabDashboard(userId: userId, name: name);
-        break;
-      case 'pusat_adab':
-        nextScreen = PusatAdabDashboard(email: email, name: name);
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
@@ -142,7 +108,6 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Brand Logo/Header
                     const Icon(
                       Icons.school_outlined,
                       size: 80,
@@ -169,8 +134,6 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     const SizedBox(height: 48),
-
-                    // Card container for inputs
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
@@ -193,46 +156,12 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           const SizedBox(height: 24),
-
-                          // User ID Field
                           TextFormField(
                             controller: _userIdController,
                             style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              labelText: 'User ID (e.g. CB23026)',
-                              labelStyle: TextStyle(
-                                color: Colors.white.withOpacity(0.6),
-                              ),
-                              prefixIcon: Icon(
-                                Icons.badge_outlined,
-                                color: Colors.white.withOpacity(0.6),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.2),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
-                                  color: Colors.teal,
-                                  width: 2,
-                                ),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Colors.red.shade400,
-                                ),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Colors.red.shade400,
-                                  width: 2,
-                                ),
-                              ),
+                            decoration: _buildInputDecoration(
+                              label: 'User ID (e.g. CB23026)',
+                              icon: Icons.badge_outlined,
                             ),
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
@@ -242,21 +171,13 @@ class _LoginPageState extends State<LoginPage> {
                             },
                           ),
                           const SizedBox(height: 20),
-
-                          // Password Field
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              labelStyle: TextStyle(
-                                color: Colors.white.withOpacity(0.6),
-                              ),
-                              prefixIcon: Icon(
-                                Icons.lock_outlined,
-                                color: Colors.white.withOpacity(0.6),
-                              ),
+                            decoration: _buildInputDecoration(
+                              label: 'Password',
+                              icon: Icons.lock_outlined,
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword
@@ -265,36 +186,8 @@ class _LoginPageState extends State<LoginPage> {
                                   color: Colors.white.withOpacity(0.6),
                                 ),
                                 onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
+                                  setState(() => _obscurePassword = !_obscurePassword);
                                 },
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.2),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
-                                  color: Colors.teal,
-                                  width: 2,
-                                ),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Colors.red.shade400,
-                                ),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Colors.red.shade400,
-                                  width: 2,
-                                ),
                               ),
                             ),
                             validator: (value) {
@@ -307,8 +200,6 @@ class _LoginPageState extends State<LoginPage> {
                               return null;
                             },
                           ),
-
-                          // Error Message display
                           if (auth.errorMessage != null) ...[
                             const SizedBox(height: 16),
                             Text(
@@ -320,10 +211,7 @@ class _LoginPageState extends State<LoginPage> {
                               textAlign: TextAlign.center,
                             ),
                           ],
-
                           const SizedBox(height: 28),
-
-                          // Submit Button
                           SizedBox(
                             width: double.infinity,
                             height: 56,
@@ -359,23 +247,17 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
-                    // Bottom Sign Up row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           "Don't have an account? ",
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                          ),
+                          style: TextStyle(color: Colors.white.withOpacity(0.6)),
                         ),
                         GestureDetector(
                           onTap: () {
                             Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const RegisterPage(),
-                              ),
+                              MaterialPageRoute(builder: (context) => const RegisterPage()),
                             );
                           },
                           child: const Text(
@@ -394,6 +276,35 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration({
+    required String label,
+    required IconData icon,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+      prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.6)),
+      suffixIcon: suffixIcon,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.teal, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.red.shade400),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.red.shade400, width: 2),
       ),
     );
   }

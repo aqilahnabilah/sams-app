@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../domain/Authentication/UserModel.dart';
 import '../../provider/Authentication/AuthController.dart';
 import '../../provider/Authentication/RegisterController.dart';
-import '../../domain/Authentication/UserModel.dart';
-import 'dashboards.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -16,38 +16,20 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
-<<<<<<< HEAD
-
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
+  final _userIdController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  // Student ERD fields.
   final _programCodeController = TextEditingController();
   final _programNameController = TextEditingController();
   final _facultyController = TextEditingController();
   final _currentSemController = TextEditingController();
 
-  // Pusat ADAB ERD fields.
   final _departmentController = TextEditingController(text: 'Pusat ADAB');
   final _statusController = TextEditingController(text: 'Active');
 
-  final _authService = AuthService();
-=======
-  final _userIdController = TextEditingController();
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
->>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
-
   bool _obscurePassword = true;
-<<<<<<< HEAD
-  String? _errorMessage;
-
-  // Selected role: 'student', 'lecturer', 'faculty_registrar', 'pusat_adab'
-  String _selectedRole = 'student';
-=======
   String _selectedRole = UserModel.roleStudent;
->>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
 
   @override
   void dispose() {
@@ -63,107 +45,21 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  // OOP METHOD: This method registers the user and sends ERD fields to Firebase.
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
-<<<<<<< HEAD
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final userCredential = await _authService.registerWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        name: _nameController.text.trim(),
-        role: _selectedRole,
-        programCode: _programCodeController.text.trim(),
-        programName: _programNameController.text.trim(),
-        faculty: _facultyController.text.trim(),
-        currentSem: int.tryParse(_currentSemController.text.trim()) ?? 0,
-        department: _departmentController.text.trim(),
-        status: _statusController.text.trim(),
-      );
-
-      final user = userCredential.user;
-      if (user != null) {
-        if (mounted) {
-          _routeToDashboard(
-            _selectedRole,
-            user.email ?? '',
-            _nameController.text.trim(),
-          );
-        }
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  void _routeToDashboard(String role, String email, String name) {
-    Widget nextScreen;
-
-    switch (role) {
-      case 'student':
-        nextScreen = StudentDashboard(
-          email: email,
-          name: name,
-        );
-        break;
-
-      case 'lecturer':
-        nextScreen = LecturerDashboard(
-          email: email,
-          name: name,
-        );
-        break;
-
-      case 'faculty_registrar':
-        nextScreen = RegistrarDashboard(
-          email: email,
-          name: name,
-        );
-        break;
-
-      case 'pusat_adab':
-        nextScreen = PusatAdabDashboard(
-          email: email,
-          name: name,
-        );
-        break;
-
-      default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Invalid role: $role'),
-          ),
-        );
-        return;
-    }
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => nextScreen,
-      ),
-      (route) => false,
-=======
     final registerCtrl = context.read<RegisterController>();
     final success = await registerCtrl.register(
       userId: _userIdController.text.trim(),
       username: _usernameController.text.trim(),
-      password: _passwordController.text.trim(),
+      password: _passwordController.text,
       role: _selectedRole,
->>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
+      programCode: _programCodeController.text.trim(),
+      programName: _programNameController.text.trim(),
+      faculty: _facultyController.text.trim(),
+      currentSem: int.tryParse(_currentSemController.text.trim()) ?? 0,
+      department: _departmentController.text.trim(),
+      status: _statusController.text.trim(),
     );
 
     if (success && mounted) {
@@ -204,10 +100,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back,
-                            color: Colors.white,
-                          ),
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                         const SizedBox(width: 8),
@@ -221,9 +114,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 24),
-
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
@@ -237,8 +128,6 @@ class _RegisterPageState extends State<RegisterPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-<<<<<<< HEAD
-=======
                           const Text(
                             'Sign Up',
                             style: TextStyle(
@@ -248,14 +137,11 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                           ),
                           const SizedBox(height: 24),
-
-                          // User ID Input
->>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
                           TextFormField(
                             controller: _userIdController,
                             style: const TextStyle(color: Colors.white),
                             decoration: _buildInputDecoration(
-                              label: 'User ID (e.g. CB23026)',
+                              label: 'User ID (e.g. CB23026 / ADAB01)',
                               icon: Icons.badge_outlined,
                             ),
                             validator: (value) {
@@ -265,13 +151,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               return null;
                             },
                           ),
-
                           const SizedBox(height: 16),
-
-<<<<<<< HEAD
-=======
-                          // Username Input
->>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
                           TextFormField(
                             controller: _usernameController,
                             style: const TextStyle(color: Colors.white),
@@ -280,42 +160,20 @@ class _RegisterPageState extends State<RegisterPage> {
                               icon: Icons.person_outline,
                             ),
                             validator: (value) {
-<<<<<<< HEAD
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
-                              }
-
-                              final emailRegex = RegExp(
-                                r"^[a-zA-Z0-9.a-zA-Z0-9.!#\$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
-                              );
-
-                              if (!emailRegex.hasMatch(value)) {
-                                return 'Please enter a valid email address';
-=======
                               if (value == null || value.trim().isEmpty) {
                                 return 'Please enter your full name';
->>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
                               }
-
                               return null;
                             },
                           ),
-
                           const SizedBox(height: 16),
-
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              labelStyle: TextStyle(
-                                color: Colors.white.withOpacity(0.6),
-                              ),
-                              prefixIcon: Icon(
-                                Icons.lock_outlined,
-                                color: Colors.white.withOpacity(0.6),
-                              ),
+                            decoration: _buildInputDecoration(
+                              label: 'Password',
+                              icon: Icons.lock_outlined,
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword
@@ -324,54 +182,21 @@ class _RegisterPageState extends State<RegisterPage> {
                                   color: Colors.white.withOpacity(0.6),
                                 ),
                                 onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
+                                  setState(() => _obscurePassword = !_obscurePassword);
                                 },
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.2),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
-                                  color: Colors.teal,
-                                  width: 2,
-                                ),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Colors.red.shade400,
-                                ),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Colors.red.shade400,
-                                  width: 2,
-                                ),
                               ),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter a password';
                               }
-
                               if (value.length < 6) {
                                 return 'Password must be at least 6 characters';
                               }
-
                               return null;
                             },
                           ),
-<<<<<<< HEAD
-
                           const SizedBox(height: 24),
-
                           const Text(
                             'Select Your Role',
                             style: TextStyle(
@@ -380,82 +205,43 @@ class _RegisterPageState extends State<RegisterPage> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-
                           const SizedBox(height: 12),
-
                           _buildRoleCard(
-                            roleValue: 'student',
+                            roleValue: UserModel.roleStudent,
                             title: 'Student',
-                            description: 'Register and view subjects',
+                            description: 'Register subjects and manage co-curriculum claim',
                             icon: Icons.school,
                           ),
-
                           const SizedBox(height: 8),
-
                           _buildRoleCard(
-                            roleValue: 'lecturer',
+                            roleValue: UserModel.roleLecturer,
                             title: 'Lecturer',
-                            description: 'Manage class rosters and grading',
+                            description: 'Manage attendance and subject approvals',
                             icon: Icons.menu_book,
                           ),
-
                           const SizedBox(height: 8),
-
                           _buildRoleCard(
-                            roleValue: 'faculty_registrar',
+                            roleValue: UserModel.roleFacultyRegistrar,
                             title: 'Faculty Registrar',
-                            description: 'Administer system registration parameters',
+                            description: 'Manage courses and registration settings',
                             icon: Icons.admin_panel_settings,
                           ),
-
                           const SizedBox(height: 8),
-
                           _buildRoleCard(
-                            roleValue: 'pusat_adab',
+                            roleValue: UserModel.roleTreasury,
+                            title: 'Treasury',
+                            description: 'Verify student payment records',
+                            icon: Icons.payments,
+                          ),
+                          const SizedBox(height: 8),
+                          _buildRoleCard(
+                            roleValue: UserModel.rolePusatAdab,
                             title: 'Pusat ADAB',
-                            description: 'Manage co-curriculum modules and verify claims',
+                            description: 'Add modules and verify co-curriculum claims',
                             icon: Icons.verified_user,
                           ),
-
                           _buildRoleExtraFields(),
-
-                          if (_errorMessage != null) ...[
-=======
-                          const SizedBox(height: 16),
-
-                          // Role Selection Dropdown
-                          DropdownButtonFormField<String>(
-                            value: _selectedRole,
-                            dropdownColor: const Color(0xFF203A43),
-                            style: const TextStyle(color: Colors.white),
-                            decoration: _buildInputDecoration(
-                              label: 'Select Role',
-                              icon: Icons.work_outline,
-                            ),
-                            items: [
-                              UserModel.roleStudent,
-                              UserModel.roleLecturer,
-                              UserModel.roleTreasury,
-                              UserModel.rolePusatAdab,
-                              UserModel.roleFacultyRegistrar,
-                            ].map((String role) {
-                              return DropdownMenuItem<String>(
-                                value: role,
-                                child: Text(role),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              if (newValue != null) {
-                                setState(() {
-                                  _selectedRole = newValue;
-                                });
-                              }
-                            },
-                          ),
-
-                          // Error Message display
                           if (auth.errorMessage != null) ...[
->>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
                             const SizedBox(height: 16),
                             Text(
                               auth.errorMessage!,
@@ -466,9 +252,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               textAlign: TextAlign.center,
                             ),
                           ],
-
                           const SizedBox(height: 28),
-
                           SizedBox(
                             width: double.infinity,
                             height: 56,
@@ -513,20 +297,16 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  // OOP METHOD: This method displays extra register fields based on selected role.
   Widget _buildRoleExtraFields() {
-    if (_selectedRole == 'student') {
+    if (_selectedRole == UserModel.roleStudent) {
       return _buildStudentExtraFields();
     }
-
-    if (_selectedRole == 'pusat_adab') {
+    if (_selectedRole == UserModel.rolePusatAdab) {
       return _buildPusatAdabExtraFields();
     }
-
     return const SizedBox.shrink();
   }
 
-  // OOP METHOD: This method builds Student ERD attribute inputs.
   Widget _buildStudentExtraFields() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,7 +329,8 @@ class _RegisterPageState extends State<RegisterPage> {
             icon: Icons.badge_outlined,
           ),
           validator: (value) {
-            if (value == null || value.trim().isEmpty) {
+            if (_selectedRole == UserModel.roleStudent &&
+                (value == null || value.trim().isEmpty)) {
               return 'Please enter program code';
             }
             return null;
@@ -564,7 +345,8 @@ class _RegisterPageState extends State<RegisterPage> {
             icon: Icons.school_outlined,
           ),
           validator: (value) {
-            if (value == null || value.trim().isEmpty) {
+            if (_selectedRole == UserModel.roleStudent &&
+                (value == null || value.trim().isEmpty)) {
               return 'Please enter program name';
             }
             return null;
@@ -579,7 +361,8 @@ class _RegisterPageState extends State<RegisterPage> {
             icon: Icons.account_balance_outlined,
           ),
           validator: (value) {
-            if (value == null || value.trim().isEmpty) {
+            if (_selectedRole == UserModel.roleStudent &&
+                (value == null || value.trim().isEmpty)) {
               return 'Please enter faculty';
             }
             return null;
@@ -595,13 +378,10 @@ class _RegisterPageState extends State<RegisterPage> {
             icon: Icons.calendar_month_outlined,
           ),
           validator: (value) {
+            if (_selectedRole != UserModel.roleStudent) return null;
             final sem = int.tryParse((value ?? '').trim());
-            if (sem == null) {
-              return 'Please enter current semester';
-            }
-            if (sem < 1 || sem > 8) {
-              return 'Semester must be between 1 and 8';
-            }
+            if (sem == null) return 'Please enter current semester';
+            if (sem < 1 || sem > 8) return 'Semester must be between 1 and 8';
             return null;
           },
         ),
@@ -617,7 +397,6 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  // OOP METHOD: This method builds Pusat ADAB ERD attribute inputs.
   Widget _buildPusatAdabExtraFields() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -640,7 +419,8 @@ class _RegisterPageState extends State<RegisterPage> {
             icon: Icons.business_outlined,
           ),
           validator: (value) {
-            if (value == null || value.trim().isEmpty) {
+            if (_selectedRole == UserModel.rolePusatAdab &&
+                (value == null || value.trim().isEmpty)) {
               return 'Please enter department';
             }
             return null;
@@ -655,66 +435,16 @@ class _RegisterPageState extends State<RegisterPage> {
             icon: Icons.verified_outlined,
           ),
           validator: (value) {
-            if (value == null || value.trim().isEmpty) {
+            if (_selectedRole == UserModel.rolePusatAdab &&
+                (value == null || value.trim().isEmpty)) {
               return 'Please enter status';
             }
             return null;
           },
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Role will be saved as Pusat ADAB automatically.',
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.65),
-            fontSize: 12,
-          ),
-        ),
       ],
     );
   }
-
-  InputDecoration _buildInputDecoration({
-    required String label,
-    required IconData icon,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(
-        color: Colors.white.withOpacity(0.6),
-      ),
-      prefixIcon: Icon(
-        icon,
-        color: Colors.white.withOpacity(0.6),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: Colors.white.withOpacity(0.2),
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: Colors.teal,
-          width: 2,
-        ),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: Colors.red.shade400,
-        ),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: Colors.red.shade400,
-          width: 2,
-        ),
-      ),
-    );
-  }
-<<<<<<< HEAD
 
   Widget _buildRoleCard({
     required String roleValue,
@@ -726,19 +456,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _selectedRole = roleValue;
-        });
+        setState(() => _selectedRole = roleValue);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.teal.withOpacity(0.25)
-              : Colors.white.withOpacity(0.04),
+          color: isSelected ? Colors.teal.withOpacity(0.25) : Colors.white.withOpacity(0.04),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? Colors.teal : Colors.white.withOpacity(0.1),
@@ -760,9 +483,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   Text(
                     title,
                     style: TextStyle(
-                      color: isSelected
-                          ? Colors.white
-                          : Colors.white.withOpacity(0.8),
+                      color: isSelected ? Colors.white : Colors.white.withOpacity(0.8),
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -771,9 +492,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   Text(
                     description,
                     style: TextStyle(
-                      color: isSelected
-                          ? Colors.white70
-                          : Colors.white.withOpacity(0.5),
+                      color: isSelected ? Colors.white70 : Colors.white.withOpacity(0.5),
                       fontSize: 11,
                     ),
                   ),
@@ -791,6 +510,33 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
     );
   }
-=======
->>>>>>> 559e29bde657f77a589e4a02c7b6beb10f6fc6f9
+
+  InputDecoration _buildInputDecoration({
+    required String label,
+    required IconData icon,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+      prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.6)),
+      suffixIcon: suffixIcon,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.teal, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.red.shade400),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.red.shade400, width: 2),
+      ),
+    );
+  }
 }

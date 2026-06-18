@@ -30,7 +30,7 @@ class AuthController extends ChangeNotifier {
   }
 
   String idToEmail(String userId) {
-    return "${userId.trim().toLowerCase()}@sams.app";
+    return '${userId.trim().toLowerCase()}@sams.app';
   }
 
   AuthController() {
@@ -48,27 +48,29 @@ class AuthController extends ChangeNotifier {
   Future<void> fetchUserDetails(String uid) async {
     try {
       final doc = await _firestore.collection(FirestoreCollections.users).doc(uid).get();
+
       if (doc.exists && doc.data() != null) {
         _currentUser = UserModel.fromFirestore(doc.data()!);
         _errorMessage = null;
       } else {
         _currentUser = null;
         if (_auth.currentUser != null) {
-          _errorMessage = "Profile missing for UID: $uid. Please register via the app to fix this.";
+          _errorMessage = 'Profile missing for UID: $uid. Please register again.';
         }
       }
     } catch (e) {
-      _errorMessage = "Failed to load user details: $e";
+      _errorMessage = 'Failed to load user details: $e';
       _currentUser = null;
     }
+
     notifyListeners();
   }
 
   bool checkSession() => isLoggedIn;
   UserModel? getCurrentUser() => _currentUser;
-  bool hasRole(String role) => _currentUser?.role == role;
+  bool hasRole(String role) => UserModel.normalizeRole(_currentUser?.role) == UserModel.normalizeRole(role);
 
-  void logout() async {
+  Future<void> logout() async {
     await _auth.signOut();
     _currentUser = null;
     _errorMessage = null;
