@@ -13,10 +13,7 @@ import '../../view/StudentFee/StudentFeePage.dart';
 import '../../view/StudentFee/PaymentManagement.dart';
 import '../../view/co_curriculum/CoCurriculumPage.dart';
 import '../../view/co_curriculum/AdabClaimListPage.dart';
-<<<<<<< HEAD
 import '../../view/co_curriculum/AddCoCurriculumModulePage.dart';
-=======
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
 import 'login_page.dart';
 
 class BaseDashboard extends StatelessWidget {
@@ -310,10 +307,7 @@ class StudentDashboard extends StatelessWidget {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => CoCurriculumPage(
-                  email: userId,
-                  name: name.isNotEmpty ? name : userId,
-                ),
+                builder: (context) => CoCurriculumPage(email: '', name: name.isNotEmpty ? name : userId),
               ),
             );
           },
@@ -361,9 +355,9 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
               ),
             ),
           ),
-          _sessionCard(context, 'BCS3133', 'Software Engineering Practices', Icons.code, '01', '10:00 AM', '12:00 PM'),
-          _sessionCard(context, 'BCS3143', 'Software Project Management', Icons.assignment, '02', '02:00 PM', '04:00 PM'),
-          _sessionCard(context, 'BCS3233', 'Software Testing', Icons.bug_report, '01', '08:00 AM', '10:00 AM'),
+          _sessionCard(context, 'BCS3133', 'Software Engineering Practices', Icons.code),
+          _sessionCard(context, 'BCS3143', 'Software Project Management', Icons.assignment),
+          _sessionCard(context, 'BCS3233', 'Software Testing', Icons.bug_report),
           const SizedBox(height: 12),
         ],
         ActionCard(
@@ -375,12 +369,6 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
           ),
         ),
         ActionCard(
-          title: 'Attendance History',
-          subtitle: 'View records of completed sessions.',
-          icon: Icons.history,
-          onTap: () => Navigator.pushNamed(context, '/lecturer/attendance-history'),
-        ),
-        ActionCard(
           title: 'My Courses',
           subtitle: 'View your assigned subjects and rosters.',
           icon: Icons.menu_book,
@@ -390,27 +378,17 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
     );
   }
 
-  Widget _sessionCard(BuildContext context, String code, String name, IconData icon, String section, String start, String end) {
+  Widget _sessionCard(BuildContext context, String code, String name, IconData icon) {
     return ActionCard(
-      title: '$code - Sec $section',
-      subtitle: '$name\n($start - $end)',
+      title: code,
+      subtitle: name,
       icon: icon,
       color: Colors.tealAccent.shade100,
-<<<<<<< HEAD
       onTap: () => Navigator.pushNamed(
         context,
         '/lecturer/sessions',
         arguments: {'subjectCode': code, 'subjectName': name},
       ),
-=======
-      onTap: () => Navigator.pushNamed(context, '/lecturer/sessions', arguments: {
-        'subjectCode': code,
-        'subjectName': name,
-        'classSection': section,
-        'startTime': start,
-        'endTime': end,
-      }),
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
     );
   }
 }
@@ -478,13 +456,9 @@ class RegistrarDashboard extends StatelessWidget {
           title: 'Manage Courses',
           subtitle: 'Add or modify faculty subject lists.',
           icon: Icons.add_to_photos,
-<<<<<<< HEAD
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (context) => const ManageCoursesPage()),
           ),
-=======
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ManageCoursesPage())),
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
         ),
         ActionCard(
           title: 'User Management',
@@ -523,7 +497,6 @@ class PusatAdabDashboard extends StatelessWidget {
           },
         ),
         ActionCard(
-<<<<<<< HEAD
           title: 'Add Module',
           subtitle: 'Create new co-curriculum modules for students.',
           icon: Icons.add_circle_outline,
@@ -534,18 +507,6 @@ class PusatAdabDashboard extends StatelessWidget {
               ),
             );
           },
-=======
-          title: 'Moral Records',
-          subtitle: 'Review student conduct and merit points.',
-          icon: Icons.gavel,
-          onTap: () {},
-        ),
-        ActionCard(
-          title: 'Clearance Status',
-          subtitle: 'Verify student behavioral status.',
-          icon: Icons.verified_user,
-          onTap: () {},
->>>>>>> 29ca66037698f03865eedd67b60c7a35d72bdb91
         ),
       ],
     );
