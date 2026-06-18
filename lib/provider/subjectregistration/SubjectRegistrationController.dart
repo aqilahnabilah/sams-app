@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/course_service.dart';
-import '../domain/subjectregistration/SubjectRegistrationModel.dart';
+import '../../services/course_service.dart';
+import '../../domain/subjectregistration/SubjectRegistrationModel.dart';
 
 class SubjectRegistrationController {
   final CourseService _courseService = CourseService();

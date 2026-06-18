@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../controllers/SubjectRegistrationController.dart';
+import '../../../provider/subjectregistration/SubjectRegistrationController.dart';
 
 class RegisterSubjectPage extends StatefulWidget {
   final String studentEmail;
