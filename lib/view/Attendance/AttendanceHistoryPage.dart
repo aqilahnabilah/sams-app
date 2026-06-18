@@ -285,6 +285,11 @@ class _AttendanceHistoryPageState extends State<AttendanceHistoryPage> {
   }
 
   String _formatSubject(String sessionId) {
+    if (sessionId.startsWith('SESS_')) {
+      // Format: SESS_CODE_TIMESTAMP
+      final parts = sessionId.split('_');
+      if (parts.length >= 2) return parts[1];
+    }
     if (sessionId.startsWith('SESSION_')) {
       return sessionId.replaceFirst('SESSION_', '');
     }

@@ -1,15 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../provider/Authentication/AuthController.dart';
 import '../../domain/Attendance/ClassSessionModel.dart';
 import '../../provider/Attendance/AttendanceController.dart';
 import '../../provider/Attendance/ClassCodeController.dart';
 import '../../theme/sams_theme.dart';
+import '../../utils/constants.dart';
 
 /// SAMS-PACK-310 — "Attendance" UI with Dark Gradient Theme.
-/// If a session is Closed, the "Live" elements are cleared.
+/// Resolves the discrepancy by using unique Session IDs for each class instance.
 class LectureAttendancePage extends StatefulWidget {
   const LectureAttendancePage({super.key});
 
@@ -29,54 +31,65 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _initPage());
   }
 
+  /// Initializes the page by checking for an active session or creating a new unique one.
   Future<void> _initPage() async {
     final auth = context.read<AuthController>();
     final user = auth.currentUser;
     if (user == null) return;
     final staffId = user.userId;
 
-    final args = ModalRoute.of(context)?.settings.arguments;
-    
-    if (args is ClassSessionModel) {
-      _selectedSession = args;
-    } else if (args is Map<String, dynamic>) {
-      _selectedSession = ClassSessionModel(
-        classSessionId: 'SESSION_${args['subjectCode']}',
-        staffId: staffId,
-        subjectCode: args['subjectCode'] ?? 'BCS3133',
-        subjectName: args['subjectName'] ?? 'Software Engineering Practices',
-        classSection: args['classSection'] ?? '01',
-        classDate: DateTime.now().toString().split(' ')[0],
-        startTime: args['startTime'] ?? '10:00 AM',
-        endTime: args['endTime'] ?? '12:00 PM',
-        sessionStatus: 'Closed',
-      );
-    }
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args == null) return;
 
-    if (_selectedSession == null) {
-      _selectedSession = ClassSessionModel(
-        classSessionId: 'SESS001',
-        staffId: staffId,
-        subjectCode: 'BCS3133',
-        subjectName: 'Software Engineering Practices',
-        classSection: '01',
-        classDate: '2024-05-20',
-        startTime: '10:00 AM',
-        endTime: '12:00 PM',
-        sessionStatus: 'Closed',
-      );
-    }
+    final subjectCode = args['subjectCode'] ?? 'BCS3133';
 
-    final controller = context.read<ClassCodeController>();
-    await controller.fetchActiveCode(_selectedSession!.classSessionId);
-    
-    await _loadHistory();
+    try {
+      // 1. Check Firestore for any existing "Open" session for this subject by this lecturer.
+      final activeQuery = await FirebaseFirestore.instance
+          .collection(FirestoreCollections.classSessions)
+          .where('staff_id', isEqualTo: staffId)
+          .where('subject_code', isEqualTo: subjectCode)
+          .where('session_status', isEqualTo: 'Open')
+          .limit(1)
+          .get();
 
-    if (mounted) {
-      setState(() => _loading = false);
+      if (activeQuery.docs.isNotEmpty) {
+        // Resume existing open session
+        _selectedSession = ClassSessionModel.fromMap(activeQuery.docs.first.data());
+        debugPrint('SAMS_DEBUG: Resuming existing open session: ${_selectedSession!.classSessionId}');
+      } else {
+        // No open session found. Prepare a NEW unique session ID for when they toggle to Open.
+        // We use a timestamp to ensure history entries are never overwritten.
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        _selectedSession = ClassSessionModel(
+          classSessionId: 'SESS_${subjectCode}_$timestamp',
+          staffId: staffId,
+          subjectCode: subjectCode,
+          subjectName: args['subjectName'] ?? 'Subject',
+          classSection: args['classSection'] ?? '01',
+          classDate: DateTime.now().toString().split(' ')[0],
+          startTime: args['startTime'] ?? '10:00 AM',
+          endTime: args['endTime'] ?? '12:00 PM',
+          sessionStatus: 'Closed',
+        );
+        debugPrint('SAMS_DEBUG: Prepared new unique session ID: ${_selectedSession!.classSessionId}');
+      }
+
+      final controller = context.read<ClassCodeController>();
+      await controller.fetchActiveCode(_selectedSession!.classSessionId);
+      
+      await _loadHistory();
+
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    } catch (e) {
+      debugPrint('SAMS_ERROR: _initPage: $e');
+      if (mounted) setState(() => _loading = false);
     }
   }
 
+  /// Loads the history for this specific subject to show at the bottom of the page.
   Future<void> _loadHistory() async {
     final auth = context.read<AuthController>();
     final user = auth.currentUser;
@@ -101,7 +114,14 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator(color: Colors.tealAccent)));
+      return const Scaffold(
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(gradient: LinearGradient(colors: SamsColors.portalGradient)),
+          child: Center(child: CircularProgressIndicator(color: Colors.tealAccent))
+        )
+      );
     }
 
     final codeController = context.watch<ClassCodeController>();

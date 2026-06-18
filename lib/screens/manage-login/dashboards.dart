@@ -364,7 +364,7 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
           title: 'Attendance History',
           subtitle: 'View records of completed sessions.',
           icon: Icons.history,
-          onTap: () => Navigator.pushNamed(context, '/student/attendance-history'),
+          onTap: () => Navigator.pushNamed(context, '/lecturer/attendance-history'),
         ),
         ActionCard(
           title: 'My Courses',

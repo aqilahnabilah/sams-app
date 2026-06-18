@@ -84,6 +84,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/student/check-in': (context) => const AuthWrapper(target: 'check-in'),
         '/student/attendance-history': (context) => const AuthWrapper(target: 'attendance-history'),
+        '/lecturer/attendance-history': (context) => const AuthWrapper(target: 'attendance-history'),
         '/student/attendance-status': (context) => const AuthWrapper(target: 'attendance-status'),
         '/lecturer/sessions': (context) => const AuthWrapper(target: 'lecturer-sessions'),
         '/lecturer/attendance-records': (context) => const AuthWrapper(target: 'attendance-records'),
