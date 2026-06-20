@@ -13,6 +13,7 @@ import '../../view/StudentFee/StudentFeePage.dart';
 import '../../view/StudentFee/PaymentManagement.dart';
 import '../../view/co_curriculum/CoCurriculumPage.dart';
 import '../../view/co_curriculum/AdabClaimListPage.dart';
+import '../../view/co_curriculum/AddCoCurriculumModulePage.dart';
 import 'login_page.dart';
 
 class BaseDashboard extends StatelessWidget {
@@ -499,16 +500,16 @@ class PusatAdabDashboard extends StatelessWidget {
           },
         ),
         ActionCard(
-          title: 'Moral Records',
-          subtitle: 'Review student conduct and merit points.',
-          icon: Icons.gavel,
-          onTap: () {},
-        ),
-        ActionCard(
-          title: 'Clearance Status',
-          subtitle: 'Verify student behavioral status.',
-          icon: Icons.verified_user,
-          onTap: () {},
+          title: 'Add Module',
+          subtitle: 'Create new co-curriculum modules for students.',
+          icon: Icons.add_circle_outline,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => AddCoCurriculumModulePage(staff_id: userId),
+              ),
+            );
+          },
         ),
       ],
     );

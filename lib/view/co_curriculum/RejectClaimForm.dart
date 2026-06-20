@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 
 import '../../provider/co_curriculum/CoCurriculumController.dart';
+import '../../services/auth_service.dart';
+import '../../main.dart';
 import 'ClaimSuccessPage.dart';
+import 'AdabClaimListPage.dart';
+import 'AddCoCurriculumModulePage.dart';
 
 class RejectClaimForm extends StatefulWidget {
   final String claim_id;
@@ -19,75 +24,212 @@ class RejectClaimForm extends StatefulWidget {
 }
 
 class _RejectClaimFormState extends State<RejectClaimForm> {
-  final TextEditingController rejectionReasonController =
-      TextEditingController();
+  static const Color bg = Color(0xFFFFFBF2);
+  static const Color green = Color(0xFF459B7B);
+  static const Color red = Color(0xFFE54842);
+  static const Color redDark = Color(0xFFC62828);
+  static const Color text = Color(0xFF17213A);
+  static const Color muted = Color(0xFF667085);
+  static const Color brown = Color(0xFFA4551D);
+  static const Color mint = Color(0xFFD7F8E5);
+  static const Color darkGreen = Color(0xFF1F6B52);
+
+  final TextEditingController rejectionReasonController = TextEditingController();
+  String? validationMessage;
 
   @override
   void dispose() {
-    // Dispose controller to avoid memory leak.
+    // OOP METHOD: Dispose controller to avoid memory leak.
     rejectionReasonController.dispose();
     super.dispose();
   }
 
-  // This method validates the rejection reason entered by Pusat ADAB.
+  // OOP METHOD: This method validates the rejection reason entered by Pusat ADAB.
   bool validateRejectionReason() {
     final reason = rejectionReasonController.text.trim();
 
-    if (reason.isEmpty) {
-      showMessage('Please enter rejection reason.');
+    if (reason.isEmpty || reason.length < 10) {
+      setState(() {
+        validationMessage = 'Please provide a valid rejection reason.';
+      });
       return false;
     }
 
-    if (reason.length < 10) {
-      showMessage('Rejection reason must be at least 10 characters.');
-      return false;
-    }
-
+    setState(() => validationMessage = null);
     return true;
   }
 
-  // This method submits the rejection decision.
-  // It calls the controller to update claim status as Rejected.
+  // OOP METHOD: This method submits the rejection decision through controller.
   Future<void> submitRejectClaim(BuildContext context) async {
-    if (!validateRejectionReason()) {
-      return;
-    }
+    if (!validateRejectionReason()) return;
 
-    final controller = Provider.of<CoCurriculumController>(
-      context,
-      listen: false,
+    final controller = Provider.of<CoCurriculumController>(context, listen: false);
+    await controller.rejectClaim(
+      widget.claim_id,
+      widget.staff_id,
+      rejectionReasonController.text.trim(),
     );
 
-    try {
-      await controller.rejectClaim(
-        widget.claim_id,
-        widget.staff_id,
-        rejectionReasonController.text.trim(),
-      );
-
-      if (context.mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ClaimSuccessPage(
-              message: 'Claim rejected successfully.',
-            ),
+    if (context.mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ClaimSuccessPage(
+            message: 'Claim rejected successfully.',
+            staff_id: widget.staff_id,
           ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        showMessage('Failed to reject claim. Please try again.');
-      }
+        ),
+      );
     }
   }
 
-  // This method displays message using SnackBar.
-  void showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
+  // OOP METHOD: This method signs out Pusat ADAB staff and returns to login wrapper.
+  Future<void> logoutUser(BuildContext context) async {
+    final authService = AuthService();
+    await authService.signOut();
+
+    if (!context.mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const AuthWrapper()),
+      (route) => false,
+    );
+  }
+
+  // OOP METHOD: This method maps staff to add module page.
+  void mapsToAddModule(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddCoCurriculumModulePage(staff_id: widget.staff_id)),
+    );
+  }
+
+  // OOP METHOD: This method opens staff profile information as a pop-up.
+  void displayUserProfileDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Text(
+            'Pusat ADAB Profile',
+            style: TextStyle(color: text, fontWeight: FontWeight.w900),
+          ),
+          content: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            future: FirebaseFirestore.instance
+                .collection('PusatAdab')
+                .doc(widget.staff_id)
+                .get(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SizedBox(
+                  height: 120,
+                  child: Center(child: CircularProgressIndicator(color: green)),
+                );
+              }
+
+              final data = snapshot.data?.data() ?? {};
+
+              String readProfileValue(List<String> keys, String fallback) {
+                for (final key in keys) {
+                  final value = data[key];
+                  if (value != null && value.toString().trim().isNotEmpty) {
+                    return value.toString();
+                  }
+                }
+                return fallback;
+              }
+
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                          child: CircleAvatar(
+                            radius: 34,
+                            backgroundColor: mint,
+                            child: Text(
+                              'U',
+                              style: TextStyle(
+                                color: darkGreen,
+                                fontSize: 30,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                    const SizedBox(height: 20),
+                    _profileItem('staff_name', readProfileValue(['staff_name'], widget.staff_id)),
+                    _profileItem('staff_email', readProfileValue(['staff_email'], widget.staff_id)),
+                    _profileItem('department', readProfileValue(['department'], 'Pusat ADAB')),
+                    _profileItem('role', readProfileValue(['role'], 'Pusat ADAB')),
+                    _profileItem('status', readProfileValue(['status', 'account_status'], 'Active')),
+                  ],
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close', style: TextStyle(color: green, fontWeight: FontWeight.w800)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // OOP METHOD: This method shows staff actions from the top-right user button.
+  void displayProfileMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('User Menu', style: TextStyle(color: text, fontSize: 18, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.person, color: green),
+                title: const Text('User Profile', style: TextStyle(fontWeight: FontWeight.w800)),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  displayUserProfileDialog(context);
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.add_circle_outline, color: green),
+                title: const Text('Add Module', style: TextStyle(fontWeight: FontWeight.w800)),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  mapsToAddModule(context);
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.red)),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  await logoutUser(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -96,154 +238,106 @@ class _RejectClaimFormState extends State<RejectClaimForm> {
     return Consumer<CoCurriculumController>(
       builder: (context, controller, child) {
         return Scaffold(
-          backgroundColor: const Color(0xFFF7F9FC),
-          appBar: AppBar(
-            backgroundColor: const Color(0xFFC62828),
-            elevation: 0,
-            title: const Text(
-              'Reject Claim',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+          backgroundColor: bg,
+          
+          body: Column(
+            children: [
+              _topHeader(
+                title: 'Reject Claim',
+                subtitle: 'Alternative flow A1 and E2',
+                onBackTap: () => Navigator.maybePop(context),
+                onAvatarTap: () => displayProfileMenu(context),
               ),
-            ),
-            centerTitle: true,
-            iconTheme: const IconThemeData(color: Colors.white),
-          ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: displayRejectClaimForm(context, controller),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+                  child: Column(
+                    children: [
+                      _formCard(),
+                      if (validationMessage != null) ...[
+                        const SizedBox(height: 18),
+                        _validationBox(validationMessage!),
+                      ],
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _outlineButton(
+                              label: 'Cancel',
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _rejectButton(
+                              label: controller.isLoading ? 'Submitting...' : 'Submit Rejection',
+                              onPressed: controller.isLoading
+                                  ? () {}
+                                  : () => submitRejectClaim(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  // This method displays the reject claim form.
-  Widget displayRejectClaimForm(
-    BuildContext context,
-    CoCurriculumController controller,
-  ) {
-    return Column(
-      children: [
-        const SizedBox(height: 20),
-        displayHeaderCard(),
-        const SizedBox(height: 18),
-        displayReasonInput(),
-        const SizedBox(height: 18),
-        displayRejectNotice(),
-        const SizedBox(height: 28),
-        displaySubmitButton(context, controller),
-        const SizedBox(height: 12),
-        displayCancelButton(context),
-      ],
-    );
-  }
 
-  // This method displays rejection page header.
-  Widget displayHeaderCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFE5E7EB),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: const Column(
+  Widget _profileItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 42,
-            backgroundColor: Color(0xFFFFEBEE),
-            child: Icon(
-              Icons.cancel,
-              size: 52,
-              color: Color(0xFFC62828),
-            ),
-          ),
-          SizedBox(height: 18),
-          Text(
-            'Reject Co-curriculum Claim',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 23,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF111827),
-            ),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Please enter a clear rejection reason. The student can view this reason from the claim status page.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF6B7280),
-              height: 1.5,
-            ),
-          ),
+          Text(label, style: const TextStyle(color: muted, fontSize: 13)),
+          const SizedBox(height: 3),
+          Text(value, style: const TextStyle(color: text, fontWeight: FontWeight.w800)),
         ],
       ),
     );
   }
 
-  // This method displays rejection reason input field.
-  Widget displayReasonInput() {
+  Widget _formCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: const Color(0xFFE5E7EB),
-        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE9E5DD)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.10), blurRadius: 12, offset: const Offset(0, 5)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Rejection Reason',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF111827),
-            ),
-          ),
-          const SizedBox(height: 12),
+          _sectionTitle('REJECTION REASON FORM'),
+          const SizedBox(height: 16),
           TextField(
             controller: rejectionReasonController,
             maxLines: 5,
+            style: const TextStyle(color: text, fontSize: 16, height: 1.35),
             decoration: InputDecoration(
-              hintText: 'Enter rejection reason here...',
+              hintText: 'Example: Module completion evidence is incomplete or record mismatch found.',
+              hintStyle: const TextStyle(color: text, fontSize: 16, height: 1.35),
               filled: true,
-              fillColor: const Color(0xFFF9FAFB),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(
-                  color: Color(0xFFE5E7EB),
-                ),
-              ),
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.all(18),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(
-                  color: Color(0xFFE5E7EB),
-                ),
+                borderRadius: BorderRadius.circular(22),
+                borderSide: const BorderSide(color: Color(0xFFFF8A8A)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(
-                  color: Color(0xFFC62828),
-                  width: 1.5,
-                ),
+                borderRadius: BorderRadius.circular(22),
+                borderSide: const BorderSide(color: red, width: 1.4),
               ),
             ),
           ),
@@ -252,107 +346,103 @@ class _RejectClaimFormState extends State<RejectClaimForm> {
     );
   }
 
-  // This method displays rejection notice for Pusat ADAB.
-  Widget displayRejectNotice() {
+  Widget _topHeader({
+    required String title,
+    required String subtitle,
+    required VoidCallback onBackTap,
+    required VoidCallback onAvatarTap,
+  }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      height: 116,
+      color: green,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 18, 12),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: onBackTap,
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                tooltip: 'Back',
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w900, height: 1.0)),
+                    const SizedBox(height: 6),
+                    Text(subtitle, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: onAvatarTap,
+                child: CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.white.withOpacity(0.22),
+                  child: const Text('U', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(color: brown, fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 2.4),
+    );
+  }
+
+  Widget _validationBox(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEE),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFFFCDD2),
-        ),
+        color: const Color(0xFFFFE1E1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFFF9B9B)),
       ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.warning_amber,
-            color: Color(0xFFC62828),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Once rejected, the claim status will be updated as Rejected and the rejection reason will be stored in the database.',
-              style: TextStyle(
-                color: Color(0xFFC62828),
-                height: 1.4,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
+      child: Text(message, style: const TextStyle(color: redDark, fontSize: 16)),
     );
   }
 
-  // This method displays confirm reject button.
-  Widget displaySubmitButton(
-    BuildContext context,
-    CoCurriculumController controller,
-  ) {
+  Widget _rejectButton({required String label, required VoidCallback onPressed}) {
     return SizedBox(
-      width: double.infinity,
-      height: 52,
+      height: 58,
       child: ElevatedButton(
-        onPressed: controller.isLoading
-            ? null
-            : () {
-                submitRejectClaim(context);
-              },
+        onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFC62828),
-          disabledBackgroundColor: const Color(0xFF9CA3AF),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
+          backgroundColor: red,
+          foregroundColor: Colors.white,
+          elevation: 4,
+          shadowColor: Colors.black.withOpacity(0.18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         ),
-        child: controller.isLoading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : const Text(
-                'Confirm Reject Claim',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+        child: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
       ),
     );
   }
 
-  // This method displays cancel button.
-  Widget displayCancelButton(BuildContext context) {
+  Widget _outlineButton({required String label, required VoidCallback onPressed}) {
     return SizedBox(
-      width: double.infinity,
-      height: 52,
+      height: 58,
       child: OutlinedButton(
-        onPressed: () {
-          Navigator.pop(context);
-        },
+        onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(
-            color: Color(0xFFC62828),
-            width: 1.4,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
+          backgroundColor: Colors.white,
+          foregroundColor: text,
+          side: const BorderSide(color: Color(0xFFE0E2E6)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         ),
-        child: const Text(
-          'Cancel',
-          style: TextStyle(
-            color: Color(0xFFC62828),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
       ),
     );
   }
