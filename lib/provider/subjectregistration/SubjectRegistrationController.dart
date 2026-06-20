@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/SubjectRegistrationModel.dart';
+import '../../domain/subjectregistration/SubjectRegistrationModel.dart';
 
-class CourseService {
+class SubjectRegistrationController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Stream of all subjects, ordered by creation time descending
@@ -71,74 +71,6 @@ class CourseService {
         'examTime': examTime,
         'lectures': lectures,
         'labs': labs,
-      });
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  // Submit subject registration for approval and decrement capacity immediately
-  Future<void> submitRegistration(SubjectRegistrationModel registration) async {
-    try {
-      await _firestore.runTransaction((transaction) async {
-        final subjectDocRef = _firestore.collection('subjects').doc(registration.subjectId);
-        final subjectSnapshot = await transaction.get(subjectDocRef);
-        if (!subjectSnapshot.exists) {
-          throw Exception('Subject does not exist.');
-        }
-
-        final data = subjectSnapshot.data() as Map<String, dynamic>;
-        final List<dynamic> lectures = List.from(data['lectures'] ?? []);
-        final List<dynamic> labs = List.from(data['labs'] ?? []);
-
-        // Increment registeredCount in lectures
-        bool sectionFound = false;
-        for (var i = 0; i < lectures.length; i++) {
-          if (lectures[i]['name'] == registration.sectionName) {
-            sectionFound = true;
-            final currentReg = (lectures[i]['registeredCount'] as num?)?.toInt() ?? 0;
-            final capacity = (lectures[i]['capacity'] as num?)?.toInt() ?? 999;
-            if (currentReg >= capacity) {
-              throw Exception('This section (${registration.sectionName}) is already full.');
-            }
-            lectures[i]['registeredCount'] = currentReg + 1;
-          }
-        }
-
-        if (!sectionFound) {
-          throw Exception('Selected section not found in the subject.');
-        }
-
-        // Increment registeredCount in matching lab
-        if (registration.labSectionName.isNotEmpty) {
-          bool labFound = false;
-          for (var i = 0; i < labs.length; i++) {
-            if (labs[i]['name'] == registration.labSectionName && labs[i]['parentLecture'] == registration.sectionName) {
-              labFound = true;
-              final currentReg = (labs[i]['registeredCount'] as num?)?.toInt() ?? 0;
-              final capacity = (labs[i]['capacity'] as num?)?.toInt() ?? 999;
-              if (currentReg >= capacity) {
-                throw Exception('This lab section (${registration.labSectionName}) is already full.');
-              }
-              labs[i]['registeredCount'] = currentReg + 1;
-              break;
-            }
-          }
-          if (!labFound) {
-            throw Exception('Selected lab section not found in the subject.');
-          }
-        }
-
-        // Add the registration document
-        final regCollection = _firestore.collection('registrations');
-        final newRegRef = regCollection.doc();
-        transaction.set(newRegRef, registration.toMap());
-
-        // Update the subject document
-        transaction.update(subjectDocRef, {
-          'lectures': lectures,
-          'labs': labs,
-        });
       });
     } catch (e) {
       rethrow;
@@ -313,5 +245,239 @@ class CourseService {
       rethrow;
     }
   }
-}
 
+  // Converts "HH:mm" to total minutes from midnight
+  int _timeToMinutes(String timeStr) {
+    try {
+      final parts = timeStr.split(':');
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+      return hour * 60 + minute;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // Checks overlap: s1 < e2 && s2 < e1
+  bool _isOverlapping(
+    String day1,
+    String start1,
+    String end1,
+    String day2,
+    String start2,
+    String end2,
+  ) {
+    if (day1.trim().toLowerCase() != day2.trim().toLowerCase()) return false;
+    final s1 = _timeToMinutes(start1);
+    final e1 = _timeToMinutes(end1);
+    final s2 = _timeToMinutes(start2);
+    final e2 = _timeToMinutes(end2);
+    return s1 < e2 && s2 < e1;
+  }
+
+  // Checks duplicate registration (approved or pending) for the student
+  Future<bool> checkAlreadyRegistered({
+    required String studentEmail,
+    required String subjectId,
+  }) async {
+    try {
+      final QuerySnapshot existingRegs = await _firestore
+          .collection('registrations')
+          .where('studentEmail', isEqualTo: studentEmail)
+          .where('subjectId', isEqualTo: subjectId)
+          .get();
+
+      for (var doc in existingRegs.docs) {
+        final regData = doc.data() as Map<String, dynamic>;
+        final String status = regData['status'] ?? 'pending';
+        if (status == 'pending' || status == 'approved') {
+          return true;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  // Checks schedule clashes against student's existing active registrations
+  Future<bool> checkScheduleClash({
+    required String studentEmail,
+    required Map<String, dynamic> selectedLecture,
+    required List<dynamic> selectedLabs,
+  }) async {
+    final QuerySnapshot existingRegs = await _firestore
+        .collection('registrations')
+        .where('studentEmail', isEqualTo: studentEmail)
+        .get();
+
+    for (var doc in existingRegs.docs) {
+      final regData = doc.data() as Map<String, dynamic>;
+      final String status = regData['status'] ?? 'pending';
+
+      // Skip rejected registrations
+      if (status == 'rejected') continue;
+
+      final List<dynamic> regLectures = regData['lectures'] ?? [];
+      final List<dynamic> regLabs = regData['labs'] ?? [];
+
+      // 1. Check selected lecture against existing registered lectures
+      for (var regLec in regLectures) {
+        if (_isOverlapping(
+          selectedLecture['day'] ?? '',
+          selectedLecture['startTime'] ?? '',
+          selectedLecture['endTime'] ?? '',
+          regLec['day'] ?? '',
+          regLec['startTime'] ?? '',
+          regLec['endTime'] ?? '',
+        )) {
+          return true;
+        }
+      }
+
+      // 2. Check selected lecture against existing registered labs
+      for (var regLab in regLabs) {
+        if (_isOverlapping(
+          selectedLecture['day'] ?? '',
+          selectedLecture['startTime'] ?? '',
+          selectedLecture['endTime'] ?? '',
+          regLab['day'] ?? '',
+          regLab['startTime'] ?? '',
+          regLab['endTime'] ?? '',
+        )) {
+          return true;
+        }
+      }
+
+      // 3. Check selected labs against existing registered lectures
+      for (var selLab in selectedLabs) {
+        for (var regLec in regLectures) {
+          if (_isOverlapping(
+            selLab['day'] ?? '',
+            selLab['startTime'] ?? '',
+            selLab['endTime'] ?? '',
+            regLec['day'] ?? '',
+            regLec['startTime'] ?? '',
+            regLec['endTime'] ?? '',
+          )) {
+            return true;
+          }
+        }
+      }
+
+      // 4. Check selected labs against existing registered labs
+      for (var selLab in selectedLabs) {
+        for (var regLab in regLabs) {
+          if (_isOverlapping(
+            selLab['day'] ?? '',
+            selLab['startTime'] ?? '',
+            selLab['endTime'] ?? '',
+            regLab['day'] ?? '',
+            regLab['startTime'] ?? '',
+            regLab['endTime'] ?? '',
+          )) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
+  // Submit subject registration for approval
+  Future<void> submitRegistration({
+    required String studentEmail,
+    required String studentName,
+    required String subjectId,
+    required String subjectCode,
+    required String subjectName,
+    required String sectionName,
+    String? labSectionName,
+    required String examDate,
+    required String examTime,
+    required int creditHour,
+    required List<dynamic> lectures,
+    required List<dynamic> labs,
+  }) async {
+    final model = SubjectRegistrationModel(
+      id: '', // Document ID will be auto-generated by Firestore
+      studentEmail: studentEmail,
+      studentName: studentName,
+      subjectId: subjectId,
+      subjectCode: subjectCode,
+      subjectName: subjectName,
+      sectionName: sectionName,
+      labSectionName: labSectionName ?? '',
+      lectures: lectures.map((lec) => Map<String, dynamic>.from(lec as Map)).toList(),
+      labs: labs.map((lab) => Map<String, dynamic>.from(lab as Map)).toList(),
+      status: 'pending',
+      examDate: examDate,
+      examTime: examTime,
+      creditHour: creditHour,
+    );
+
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final subjectDocRef = _firestore.collection('subjects').doc(model.subjectId);
+        final subjectSnapshot = await transaction.get(subjectDocRef);
+        if (!subjectSnapshot.exists) {
+          throw Exception('Subject does not exist.');
+        }
+
+        final data = subjectSnapshot.data() as Map<String, dynamic>;
+        final List<dynamic> subjectLectures = List.from(data['lectures'] ?? []);
+        final List<dynamic> subjectLabs = List.from(data['labs'] ?? []);
+
+        // Increment registeredCount in lectures
+        bool sectionFound = false;
+        for (var i = 0; i < subjectLectures.length; i++) {
+          if (subjectLectures[i]['name'] == model.sectionName) {
+            sectionFound = true;
+            final currentReg = (subjectLectures[i]['registeredCount'] as num?)?.toInt() ?? 0;
+            final capacity = (subjectLectures[i]['capacity'] as num?)?.toInt() ?? 999;
+            if (currentReg >= capacity) {
+              throw Exception('This section (${model.sectionName}) is already full.');
+            }
+            subjectLectures[i]['registeredCount'] = currentReg + 1;
+          }
+        }
+
+        if (!sectionFound) {
+          throw Exception('Selected section not found in the subject.');
+        }
+
+        // Increment registeredCount in matching lab
+        if (model.labSectionName.isNotEmpty) {
+          bool labFound = false;
+          for (var i = 0; i < subjectLabs.length; i++) {
+            if (subjectLabs[i]['name'] == model.labSectionName && subjectLabs[i]['parentLecture'] == model.sectionName) {
+              labFound = true;
+              final currentReg = (subjectLabs[i]['registeredCount'] as num?)?.toInt() ?? 0;
+              final capacity = (subjectLabs[i]['capacity'] as num?)?.toInt() ?? 999;
+              if (currentReg >= capacity) {
+                throw Exception('This lab section (${model.labSectionName}) is already full.');
+              }
+              subjectLabs[i]['registeredCount'] = currentReg + 1;
+              break;
+            }
+          }
+          if (!labFound) {
+            throw Exception('Selected lab section not found in the subject.');
+          }
+        }
+
+        // Add the registration document
+        final regCollection = _firestore.collection('registrations');
+        final newRegRef = regCollection.doc();
+        transaction.set(newRegRef, model.toMap());
+
+        // Update the subject document
+        transaction.update(subjectDocRef, {
+          'lectures': subjectLectures,
+          'labs': subjectLabs,
+        });
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+}

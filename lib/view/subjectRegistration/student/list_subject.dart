@@ -1,11 +1,16 @@
+// File: list_subject.dart
+// Path: lib/view/subjectRegistration/student/list_subject.dart
+// Purpose: Screen for students to view a list of all available subjects, search them, and select one to register.
+
 // ignore_for_file: deprecated_member_use
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../../../services/course_service.dart';
+import '../../../provider/subjectregistration/SubjectRegistrationController.dart';
 import 'RegisterSubject.dart';
 import 'ListRegisteredSubject.dart';
 
+/// A screen showing available subjects that a student can register for.
 class RegisterSubjectsPage extends StatefulWidget {
   final String studentEmail;
   final String studentName;
@@ -20,8 +25,9 @@ class RegisterSubjectsPage extends StatefulWidget {
   State<RegisterSubjectsPage> createState() => _RegisterSubjectsPageState();
 }
 
+/// State for [RegisterSubjectsPage] managing search query and retrieving subjects.
 class _RegisterSubjectsPageState extends State<RegisterSubjectsPage> {
-  final CourseService _courseService = CourseService();
+  final SubjectRegistrationController _courseService = SubjectRegistrationController();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 

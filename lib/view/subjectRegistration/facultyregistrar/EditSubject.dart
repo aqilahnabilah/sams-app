@@ -1,10 +1,14 @@
+// File: EditSubject.dart
+// Path: lib/view/subjectRegistration/facultyregistrar/EditSubject.dart
+// Purpose: Screen for faculty registrars to edit existing subject details, lectures, and lab slots.
+
 // ignore_for_file: file_names, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../services/course_service.dart';
+import '../../../provider/subjectregistration/SubjectRegistrationController.dart';
 
-// Model to hold the state of a single lab session input
+/// Model to hold the state of a single lab session input.
 class LabInput {
   final TextEditingController nameController;
   final TextEditingController capacityController;
@@ -27,7 +31,7 @@ class LabInput {
   }
 }
 
-// Model to hold the state of a single lecture session input, containing its nested labs
+/// Model to hold the state of a single lecture session input, containing its nested labs.
 class LectureInput {
   final TextEditingController nameController;
   final TextEditingController capacityController;
@@ -56,6 +60,7 @@ class LectureInput {
 }
 
 // SAMS-REQ-103: Display the edit subject info form
+/// A page for faculty registrars to edit subject details.
 class EditSubjectPage extends StatefulWidget {
   final String subjectId;
   final Map<String, dynamic> subjectData;
@@ -70,6 +75,7 @@ class EditSubjectPage extends StatefulWidget {
   State<EditSubjectPage> createState() => _EditSubjectPageState();
 }
 
+/// State class for [EditSubjectPage] handles updating subject information.
 class _EditSubjectPageState extends State<EditSubjectPage> {
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
@@ -95,7 +101,7 @@ class _EditSubjectPageState extends State<EditSubjectPage> {
   // List of dynamic lecture session inputs (each containing its nested labs)
   final List<LectureInput> _lectures = [];
 
-  final CourseService _courseService = CourseService();
+  final SubjectRegistrationController _courseService = SubjectRegistrationController();
   bool _isLoading = false;
   String? _errorMessage;
 

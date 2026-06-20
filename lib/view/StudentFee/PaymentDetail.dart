@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:sams/domain/Authentication/UserModel.dart';
 import 'package:sams/domain/StudentFee/Payment/PaymentModel.dart';
 import 'package:sams/provider/StudentFee/PaymentController.dart';
-import 'package:sams/screens/manage-login/auth_route_guard.dart';
+import 'package:sams/view/manage-login/auth_route_guard.dart';
 import 'package:sams/theme/sams_theme.dart';
 
 /// Screen to view the detailed metadata of a specific payment transaction.

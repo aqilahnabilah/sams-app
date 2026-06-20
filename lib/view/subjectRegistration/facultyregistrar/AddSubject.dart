@@ -1,10 +1,14 @@
+// File: AddSubject.dart
+// Path: lib/view/subjectRegistration/facultyregistrar/AddSubject.dart
+// Purpose: Screen for faculty registrars to input and add new subjects along with lecture and lab session slots.
+
 // ignore_for_file: file_names, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../services/course_service.dart';
+import '../../../provider/subjectregistration/SubjectRegistrationController.dart';
 
-// Model to hold the state of a single lab session input
+/// Model to hold the state of a single lab session input.
 class LabInput {
   final TextEditingController nameController;
   final TextEditingController capacityController;
@@ -27,7 +31,7 @@ class LabInput {
   }
 }
 
-// Model to hold the state of a single lecture session input, containing its nested labs
+/// Model to hold the state of a single lecture session input, containing its nested labs.
 class LectureInput {
   final TextEditingController nameController;
   final TextEditingController capacityController;
@@ -56,6 +60,7 @@ class LectureInput {
 }
 
 // SAMS-REQ-101: Display add subject information form
+/// A form page for faculty registrars to add a new subject with lectures and labs.
 class AddSubjectPage extends StatefulWidget {
   const AddSubjectPage({super.key});
 
@@ -88,7 +93,7 @@ class _AddSubjectPageState extends State<AddSubjectPage> {
   // List of dynamic lecture session inputs (each containing its nested labs)
   final List<LectureInput> _lectures = [];
 
-  final CourseService _courseService = CourseService();
+  final SubjectRegistrationController _courseService = SubjectRegistrationController();
   bool _isLoading = false;
   String? _errorMessage;
 

@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
 
-import 'screens/manage-login/login_page.dart';
-import 'screens/manage-login/dashboards.dart';
+import 'view/manage-login/login_page.dart';
+import 'view/manage-login/dashboards.dart';
 
 import 'provider/co_curriculum/CoCurriculumController.dart';
 import 'provider/Attendance/AttendanceController.dart';
